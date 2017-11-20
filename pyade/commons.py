@@ -85,3 +85,40 @@ def binary_mutation(population: np.ndarray,
     mutated = population[parents[:, 2]]
     mutated = np.reshape(mutated, population.shape)
     return keep_bounds(mutated, bounds)
+
+
+def crossover(population: np.ndarray, mutated: np.ndarray,
+              cr: Union[int, float]) -> np.ndarray:
+    """
+    Crosses gens from individuals of the last generation and the mutated ones
+    based on the crossover rate.
+    :param population: Previous generation population.
+    :type population: np.ndarray
+    :param mutated: Mutated population.
+    :type population: np.ndarray
+    :param cr: Crossover rate. Must be in [0,1].
+    :type population: Union[int, float]
+    :rtype: np.ndarray
+    :return: Current generation population.
+    """
+    return np.where(cr < np.random.rand(), mutated, population)
+
+
+def selection(population: np.ndarray, new_population: np.ndarray,
+              fitness: np.ndarray, new_fitness: np.ndarray) -> np.ndarray:
+    """
+    Selects the best individuals based on their fitness.
+    :param population: Last generation population.
+    :type population: np.ndarray
+    :param new_population: Current generation population.
+    :type new_population: np.ndarray
+    :param fitness: Last generation fitness.
+    :type fitness: np.ndarray
+    :param new_fitness: Current generation fitness
+    :rtype: ndarray
+    :return: The selection of the best of previous generation
+     or mutated individual for the entire population.
+    """
+    indexes = np.where(fitness > new_fitness)[0]
+    population[indexes] = new_population[indexes]
+    return population

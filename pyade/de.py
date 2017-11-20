@@ -28,25 +28,20 @@ def de(settings):
     n_parents = settings.n_parents
     max_iter = settings.max_iter
     seed = settings.seed
-    def __recombinate(CR, population, mutated):
-        return np.array([mutated[i] if np.random.ranf() < CR else population[i] for i in range(population.shape[0])])
-
-    def __selection(recombinated, r_fitness, population, fitness):
-        return np.array([recombinated[i] if r_fitness[i] < fitness[i] else population[i] for i in range(population.shape[0])])
 
     # 1. Initialization
     population = pyade.commons.init_population(population_size, individual_size, bounds)
-    fitness = pyade.commons.apply_fitness(population, func)
 
     for num_iters in range(max_iter):
+        fitness = pyade.commons.apply_fitness(population, func)
         mutated = pyade.commons.binary_mutation(population, F, bounds)
-        recombinated = __recombinate(CR, population, mutated)
+        recombinated = pyade.commons.crossover(population, mutated, CR)
         r_fitness = pyade.commons.apply_fitness(recombinated, func)
-        population = __selection(recombinated,r_fitness,population,fitness)
+        population = pyade.commons.selection(population, recombinated,
+                                             fitness, r_fitness)
 
-    fitness = [func(individual) for individual in population]
     best = np.argmin(fitness)
-    return population[best]
+    return population[best], fitness[best]
 
 if __name__ == '__main__':
     f = lambda x : (x**2).sum()
