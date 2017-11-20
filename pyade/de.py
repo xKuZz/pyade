@@ -2,11 +2,13 @@ import numpy as np
 import pyade.commons
 
 class DE_Settings:
-    def __init__(self, func, bounds, population_size, CR = 0.3, strategy ='random', F = None, n_parents = 3,
+    def __init__(self, func, bounds, population_size, individual_size,
+                 CR = 0.3, strategy ='random', F = None, n_parents = 3,
                  max_iter = 10000, seed = None):
         self.func = func # Function for fitness
         self.bounds = bounds # Bounds for each feature of the poblation
         self.population_size = population_size # Size of the population
+        self.individual_size = individual_size # Size of the individual
         self.CR = CR # Recombination chance in [0.0,1.0]
         self.strategy = strategy # Strategy selected for mutation
         self.F = F # Mutation parameter in [0,2]
@@ -14,7 +16,7 @@ class DE_Settings:
         self.max_iter = max_iter # Termination criteria: Maximum number of genereations
         self.seed = seed # Seed for random generation
 
-def de(**settings):
+def de(settings):
     # Extract from namedtuple
     func = settings.func
     bounds = settings.bounds
@@ -38,7 +40,7 @@ def de(**settings):
     def __mutate(strategy,population, bounds, F, n_parents = 3):
         mut = [__mutate1(strategy, individual, population, F, n_parents) for individual in range(population.shape[0])]
         mut = np.reshape(np.array(mut),population.shape)
-        mut = pyade.commons._keep_bounds(mut,bounds)
+        mut = pyade.commons.keep_bounds(mut,bounds)
         return mut
 
     def __recombinate(CR, population, mutated):
@@ -51,10 +53,11 @@ def de(**settings):
         return [func(individual) for individual in population]
 
     # 1. Initialization
-    population = pyade.commons._init_population(population_size, individual_size)
+    population = pyade.commons.init_population(population_size, individual_size)
 
     population = np.array(population)
-    # 1.4 Evaluate fitness
+
+    # 1.2 Evaluate fitness
     fitness = __fitness(population)
 
     for num_iters in range(max_iter):

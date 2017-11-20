@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def _keep_bounds(population: np.array, bounds: np.array) -> np.array:
+def keep_bounds(population: np.array, bounds: np.array) -> np.array:
     """
     Constrains the population to its proper limits.
     Any value outside its bounded ranged is clipped.
@@ -18,7 +18,7 @@ def _keep_bounds(population: np.array, bounds: np.array) -> np.array:
     return np.clip(population, minimum, maximum)
 
 
-def _init_population(population_size: int, individual_size: int,
+def init_population(population_size: int, individual_size: int,
                      bounds: np.array) -> np.array:
     """
     Creates a random population within its constrained bounds
@@ -33,4 +33,4 @@ def _init_population(population_size: int, individual_size: int,
     :return: Initialized population.
     """
     population = np.random.randn(population_size, individual_size)
-    return _keep_bounds(population, bounds)
+    return keep_bounds(population, bounds)
