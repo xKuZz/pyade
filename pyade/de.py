@@ -83,15 +83,3 @@ def de(population_size: int, individual_size: int, f: Union[float, int],
 
     best = np.argmin(fitness)
     return population[best], fitness[best]
-
-
-if __name__ == '__main__':
-    params = get_default_de_params()
-    params['population_size'] = 50
-    params['individual_size'] = 2
-    params['f'] = 1.3
-    params['cr'] = 0.7
-    params['bounds'] = np.array([[-3, 3], [-5, 5]])
-    params['func'] = lambda x: (x**2).sum()
-    solution, fitness = de(**params)
-    print("Solution: ", solution, "\tFitness: ", fitness)

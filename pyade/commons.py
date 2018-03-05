@@ -34,7 +34,7 @@ def init_population(population_size: int, individual_size: int,
     :rtype: np.ndarray
     :return: Initialized population.
     """
-    # FIXME: Adjust to real bounds
+
     population = np.random.randn(population_size, individual_size)
     return keep_bounds(population, bounds)
 
