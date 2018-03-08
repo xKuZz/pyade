@@ -73,17 +73,18 @@ def binary_mutation(population: np.ndarray,
     """
 
     # 1. For each number, obtain 3 random integers that are not the number
-    parents = []
-    for i in range(population.shape[0]):
-        choices = np.append(np.arange(i), np.arange(i+1, population.shape[0]))
-        parents.append(np.random.choice(choices, 3, replace=False))
 
-    parents = np.matrix(parents)
+    pob_size = population.shape[0]
+    choices = np.indices((pob_size, pob_size))[1]
+    mask = np.ones(choices.shape, dtype=bool)
+    np.fill_diagonal(mask, 0)
+    choices = choices[mask].reshape(pob_size, pob_size-1)
+    parents = np.array([np.random.choice(row, 3, replace=False) for row in choices])
 
     # 2. Apply the formula to each set of parents
     mutated = F * (population[parents[:, 0]] - population[parents[:, 1]])
-    mutated = population[parents[:, 2]]
-    mutated = np.reshape(mutated, population.shape)
+    mutated += population[parents[:, 2]]
+
     return keep_bounds(mutated, bounds)
 
 
