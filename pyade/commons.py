@@ -102,7 +102,8 @@ def crossover(population: np.ndarray, mutated: np.ndarray,
     :rtype: np.ndarray
     :return: Current generation population.
     """
-    return np.where(cr < np.random.rand(), mutated, population)
+    chosen = np.random.rand(*population.shape)
+    return np.where(chosen < cr, population, mutated)
 
 
 def selection(population: np.ndarray, new_population: np.ndarray,
