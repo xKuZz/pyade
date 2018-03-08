@@ -15,7 +15,7 @@ def get_default_de_params() -> dict:
 
 def de(population_size: int, individual_size: int, f: Union[float, int],
        cr: Union[float, int], bounds: np.ndarray,
-       func: Callable[[np.ndarray], float],
+       func: Callable[[np.ndarray], np.ndarray],
        max_iters: int, seed: Union[int, None]) -> [np.ndarray, int]:
     """
     Applies the standard differential evolution algorithm.
@@ -81,5 +81,6 @@ def de(population_size: int, individual_size: int, f: Union[float, int],
         population = pyade.commons.selection(population, crossed,
                                              fitness, c_fitness)
 
+    fitness = pyade.commons.apply_fitness(population, func)
     best = np.argmin(fitness)
     return population[best], fitness[best]
