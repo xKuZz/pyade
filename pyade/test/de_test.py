@@ -35,6 +35,8 @@ def test_boundaries():
 def my_fitness(x: np.ndarray):
     return (x**2).sum()
 
+#TODO: Comprobar que mejor, peor y media/mediana mejora al ejecutar
+#TODO: Apuntar hitos para ficheros de texto
 
 def test_differential_evolution():
     params = pyade.de.get_default_de_params()

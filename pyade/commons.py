@@ -3,7 +3,7 @@ from typing import Callable, Union
 
 
 def keep_bounds(population: np.ndarray,
-                bounds: Union[np.ndarray, list]) -> np.ndarray:
+                bounds: np.ndarray) -> np.ndarray:
     """
     Constrains the population to its proper limits.
     Any value outside its bounded ranged is clipped.
@@ -11,7 +11,7 @@ def keep_bounds(population: np.ndarray,
     :type population: np.ndarray
     :param bounds: Numpy array of tuples (min, max).
                    Each tuple represents a gen of an individual.
-    :type bounds: Union[np.ndarray, list]
+    :type bounds: np.ndarray
     :rtype np.ndarray
     :return: Population constrained within its bounds.
     """
@@ -53,9 +53,20 @@ def apply_fitness(population: np.ndarray,
     return np.array([func(individual) for individual in population])
 
 
+def __parents_choice(population: np.ndarray, n_parents: int) -> np.ndarray:
+    pob_size = population.shape[0]
+    choices = np.indices((pob_size, pob_size))[1]
+    mask = np.ones(choices.shape, dtype=bool)
+    np.fill_diagonal(mask, 0)
+    choices = choices[mask].reshape(pob_size, pob_size - 1)
+    parents = np.array([np.random.choice(row, n_parents, replace=False) for row in choices])
+
+    return parents
+
+
 def binary_mutation(population: np.ndarray,
-                    F: Union[int, float],
-                    bounds: Union[np.ndarray, list]) -> np.ndarray:
+                    f: Union[int, float],
+                    bounds: np.ndarray) -> np.ndarray:
     """
     Calculate the binary mutation of the population. For each individual (n),
     3 random parents (x,y,z) are selected. The parents are guaranteed to not
@@ -63,27 +74,55 @@ def binary_mutation(population: np.ndarray,
     n = z + F * (x-y)
     :param population: Population to apply the mutation
     :type population: np.ndarray
-    :param F: Parameter of control of the mutation. Must be in [0, 2].
-    :type F: Union[int, float]
+    :param f: Parameter of control of the mutation. Must be in [0, 2].
+    :type f: Union[int, float]
     :param bounds: Numpy array of tuples (min, max).
                    Each tuple represents a gen of an individual.
-    :type bounds: Union[np.ndarray, list]
+    :type bounds: np.ndarray
     :rtype: np.ndarray
     :return: Mutated population
     """
 
     # 1. For each number, obtain 3 random integers that are not the number
-
-    pob_size = population.shape[0]
-    choices = np.indices((pob_size, pob_size))[1]
-    mask = np.ones(choices.shape, dtype=bool)
-    np.fill_diagonal(mask, 0)
-    choices = choices[mask].reshape(pob_size, pob_size-1)
-    parents = np.array([np.random.choice(row, 3, replace=False) for row in choices])
-
+    parents = __parents_choice(population, 3)
     # 2. Apply the formula to each set of parents
-    mutated = F * (population[parents[:, 0]] - population[parents[:, 1]])
+    mutated = f * (population[parents[:, 0]] - population[parents[:, 1]])
     mutated += population[parents[:, 2]]
+
+    return keep_bounds(mutated, bounds)
+
+
+def current_to_best_2_binary_mutation(population: np.ndarray,
+                                      population_fitness: np.ndarray,
+                                      f: Union[int, float],
+                                      bounds: np.ndarray) -> np.ndarray:
+    """
+    Calculates the mutation of the entire population based on the
+    "current to best/2/bin" mutation. This is
+    V_{i, G} = X_{i, G} + F * (X_{best, G} - X_{i, G} + F * (X_{r1. G} - X_{r2, G}
+    :param population: Population to apply the mutation
+    :type population: np.ndarray
+    :param population_fitness: Fitness of the given population
+    :type population_fitness: np.ndarray
+    :param f: Parameter of control of the mutation. Must be in [0, 2].
+    :type f: Union[int, float]
+    :param bounds: Numpy array of tuples (min, max).
+                   Each tuple represents a gen of an individual.
+    :type bounds: np.ndarray
+    :rtype: np.ndarray
+    :return: Mutated population
+    """
+    # If there's not enough population we return it without mutating
+    if len(population) < 3:
+        return population
+
+    # 1. We find the best parent
+    best_index = np.argmin(population_fitness)
+
+    # 2. We choose two random parents
+    parents = __parents_choice(population, 2)
+    mutated = population + f * (population[best_index] - population)
+    mutated += f * (population[parents[:, 0]] - population[parents[:, 1]])
 
     return keep_bounds(mutated, bounds)
 
