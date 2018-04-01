@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Callable, Union
+from typing import Callable, Union, List
 
 
 def keep_bounds(population: np.ndarray,
@@ -82,6 +82,9 @@ def binary_mutation(population: np.ndarray,
     :rtype: np.ndarray
     :return: Mutated population
     """
+    # If there's not enough population we return it without mutating
+    if len(population) < 3:
+        return population
 
     # 1. For each number, obtain 3 random integers that are not the number
     parents = __parents_choice(population, 3)
@@ -122,6 +125,46 @@ def current_to_best_2_binary_mutation(population: np.ndarray,
     # 2. We choose two random parents
     parents = __parents_choice(population, 2)
     mutated = population + f * (population[best_index] - population)
+    mutated += f * (population[parents[:, 0]] - population[parents[:, 1]])
+
+    return keep_bounds(mutated, bounds)
+
+
+def current_to_pbest_mutation(population: np.ndarray,
+                                      population_fitness: np.ndarray,
+                                      f: List[float],
+                                      p: float,
+                                      bounds: np.ndarray) -> np.ndarray:
+    """
+    Calculates the mutation of the entire population based on the
+    "current to p-best" mutation. This is
+    V_{i, G} = X_{i, G} + F * (X_{p_best, G} - X_{i, G} + F * (X_{r1. G} - X_{r2, G}
+    :param population: Population to apply the mutation
+    :type population: np.ndarray
+    :param population_fitness: Fitness of the given population
+    :type population_fitness: np.ndarray
+    :param f: Parameter of control of the mutation. Must be in [0, 2].
+    :type f: Union[int, float]
+    :param p: Percentage of population that can be a p-best. Muest be in (0, 1).
+    :type p: Union[int, float]
+    :param bounds: Numpy array of tuples (min, max).
+                   Each tuple represents a gen of an individual.
+    :type bounds: np.ndarray
+    :rtype: np.ndarray
+    :return: Mutated population
+    """
+    # If there's not enough population we return it without mutating
+    if len(population) < 3:
+        return population
+
+    # 1. We find the best parent
+    best_index = np.argsort(population_fitness)[:round(p*len(population))]
+
+    p_best = np.random.choice(best_index, len(population))
+
+    # 2. We choose two random parents
+    parents = __parents_choice(population, 2)
+    mutated = population + f * (population[p_best] - population)
     mutated += f * (population[parents[:, 0]] - population[parents[:, 1]])
 
     return keep_bounds(mutated, bounds)

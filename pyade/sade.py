@@ -113,8 +113,6 @@ def apply(population_size: int, individual_size: int,
         sum_nf2 += np.sum(choice_2) - chosen_2
         cr_list = np.concatenate((cr_list, cr[winners]))
 
-        print(population.shape)
-
         # 2.4.1 Adapt mutation strategy probability
         if (iter + 1) % 50 == 0:
             probability = sum_ns1 * (sum_ns2 + sum_nf2) / (sum_ns2 * (sum_ns1 + sum_nf1))

@@ -25,10 +25,6 @@ def jade(population_size: int, individual_size: int, f: Union[float, int],
     :type population_size: int
     :param individual_size: Number of gens/features of an individual.
     :type individual_size: int
-    :param f: Mutation parameter. Must be in [0, 2].
-    :type f: Union[float, int]
-    :param cr: Crossover Ratio. Must be in [0, 1].
-    :type cr: Union[float, int]
     :param bounds: Numpy ndarray with individual_size rows and 2 columns.
     First column represents the minimum value for the row feature.
     Second column represent the maximum value for the row feature.
@@ -55,13 +51,6 @@ def jade(population_size: int, individual_size: int, f: Union[float, int],
     if type(individual_size) is not int or individual_size <= 0:
         raise ValueError("individual_size must be a positive integer.")
 
-    if (type(f) is not int and type(f) is not float) or not 0 <= f <= 2:
-        raise ValueError("f (mutation parameter) must be a "
-                         "real number in [0,2].")
-
-    if (type(cr) is not int and type(cr) is not float) or not 0 <= cr <= 1:
-        raise ValueError("cr (crossover ratio) must be a "
-                         "real number in [0,1].")
 
     if type(max_iters) is not int or max_iters <= 0:
         raise ValueError("max_iter must be a positive integer.")
@@ -80,69 +69,33 @@ def jade(population_size: int, individual_size: int, f: Union[float, int],
         raise ValueError("c must be an rela number in [0, 1].")
 
     np.random.seed(seed)
+
+    # 1. Init population
     population = pyade.commons.init_population(population_size, individual_size, bounds)
-    archive = []
-
-    for num_iter in range(max_iters):
-        fitness = pyade.commons.apply_fitness(population, func)
-        s_f = []
-        s_cr = []
-        mutated = np.empty(population.shape)
-        crossed = np.empty(population.shape)
-        for i in range(population_size):
-            # CR_i Normal Distribution
-            cr_i = np.random.normal(cr, 0.1)
-            cr_i = np.clip(cr_i, 0, 1)
-            # F_i Cauchy Distribution
-            f_i = 0
-            while f_i == 0:
-                f_i = scipy.stats.cauchy.rvs(loc=f, scale=0.1)
-            if f_i >= 1:
-                f_i = 1
-            # Mutation
-            # Find a random in the p best.
-            options = np.argsort(fitness)[::-1][:round(p*population_size)]
-            selected = np.random.choice(options)
-            x_best = population[selected]
-            # Find random from current population that is not the selected one
-            selection_range = np.arange(0, population_size + len(archive))
-            np.delete(selection_range, selected)
-            selected_2 = np.random.choice(selection_range[:population_size-1])
-            x_r1 = population[selected_2]
-            np.delete(selection_range, selected_2 + 1)
-            # Find random from current population or archive that wasn't selected previously
-            selected_3 = np.random.choice(selection_range)
-            if selected_3 < population_size:
-                x_r2 = population[selected_3]
-            else:
-                x_r2 = archive[selected_3 - population_size - 2]
-
-            mutated[i, :] = population[i, :] + f_i * (x_best - population[i, :]) + f_i * (x_r1 - x_r2)
-
-            # Crossover
-            jrand = np.random.randint(0, individual_size)
-            for j in range(individual_size):
-                if j == jrand or np.random.rand() < cr_i:
-                    crossed[i, j] = mutated[i, j]
-                else:
-                    crossed[i, j] = population[i, j]
-
-       # Replacement
-
-            c_fitness = pyade.commons.apply_fitness([crossed[i]], func)
-            if fitness[i] > c_fitness[0]:
-                archive.append(population[i])
-                s_cr.append(cr_i)
-                s_f.append(f_i)
-                population[i] = crossed[i]
-
-        # Update crossover  and mutation control parameters.
-        cr = (1 - c) * cr + c * np.mean(s_cr)
-        f = (1 - c) * f + c * np.mean(s_f)
-
-    if len(archive) > population_size:
-        archive = random.sample(archive, population_size)
+    u_cr = 0.5
+    u_f = 0.6
 
     fitness = pyade.commons.apply_fitness(population, func)
+
+    for iter in range(max_iters):
+        # 2.1 Generate parameter values for current generation
+        cr = np.random.normal(u_cr, 0.1, population_size)
+        f = np.random.rand(population_size // 3) * 1.2
+        f = np.concatenate((f, np.random.normal(u_f, 0.1, population_size - (population_size // 3))))
+
+        # 2.2 Common steps
+        mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p, bounds)
+        crossed = pyade.commons.crossover(population, mutated, cr.reshape(len(f), 1))
+        c_fitness = pyade.commons.apply_fitness(crossed, func)
+        population = pyade.commons.selection(population, crossed,
+                                             fitness, c_fitness)
+
+        # 2.3 Adapt for next generation
+        indexes = np.where(c_fitness < fitness)
+        u_cr = (1 - c) * u_cr + c * np.mean(cr[indexes])
+        u_f = (1 - c) * u_f + c * (np.sum(f[indexes]**2)/ np.sum(f[indexes]))
+
+        fitness = pyade.commons.apply_fitness(population, func)
+
     best = np.argmin(fitness)
     return population[best], fitness[best]
