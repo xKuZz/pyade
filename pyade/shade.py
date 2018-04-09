@@ -1,20 +1,22 @@
 import pyade.commons
 import numpy as np
+import scipy.stats
+import random
 from typing import Callable, Union
 
 
-def get_default_params() -> dict:
+def get_default_params():
     """
         Returns the default parameters of the JADE Differential Evolution Algorithm
         :return: Dict with the default parameters of the JADE Differential
         Evolution Algorithm.
         :rtype dict
-        """
+    """
     return {'max_iters': 10000, 'seed': None}
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
-          func: Callable[[np.ndarray], np.ndarray], p: Union[int, float], c: Union[int, float],
+          func: Callable[[np.ndarray],np.ndarray],
           max_iters: int, seed: Union[int, None]) -> [np.ndarray, int]:
     """
     Applies the standard differential evolution algorithm.
@@ -29,10 +31,6 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
-    :param p: Parameter to choose the best vectors. Must be in (0, 1].
-    :type p: Union[int, float]
-    :param c: Variable to control parameter adoption. Must be in [0, 1].
-    :type c: Union[int, float]
     :param max_iters: Number of generations after the algorithm is stopped.
     :type max_iters: int
     :param seed: Random number generation seed. Fix a number to reproduce the
@@ -48,6 +46,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     if type(individual_size) is not int or individual_size <= 0:
         raise ValueError("individual_size must be a positive integer.")
 
+
     if type(max_iters) is not int or max_iters <= 0:
         raise ValueError("max_iter must be a positive integer.")
 
@@ -59,25 +58,25 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     if type(seed) is not int and seed is not None:
         raise ValueError("seed must be an integer or None.")
 
-    if type(p) not in [int, float] and 0 < p <= 1:
-        raise ValueError("p must be a real number in (0, 1].")
-    if type(c) not in [int, float] and 0 <= c <= 1:
-        raise ValueError("c must be an real number in [0, 1].")
 
     np.random.seed(seed)
+    random.seed(seed)
 
-    # 1. Init population
+    # 1. Initialization
     population = pyade.commons.init_population(population_size, individual_size, bounds)
-    u_cr = 0.5
-    u_f = 0.6
-
+    m_cr = np.ones(population_size) * 0.5
+    m_f = np.ones(population_size) * 0.5
+    archive = []
+    k = 0
     fitness = pyade.commons.apply_fitness(population, func)
 
+    all_indexes = list(range(population_size))
     for iter in range(max_iters):
-        # 2.1 Generate parameter values for current generation
-        cr = np.random.normal(u_cr, 0.1, population_size)
-        f = np.random.rand(population_size // 3) * 1.2
-        f = np.concatenate((f, np.random.normal(u_f, 0.1, population_size - (population_size // 3))))
+        # 2.1 Adaptation
+        r = np.random.choice(all_indexes, population_size)
+        cr = np.random.normal(m_cr[r], 0.1, population_size)
+        f = scipy.stats.cauchy.rvs(loc=m_f[r], scale=0.1, size=population_size)
+        p = np.random.uniform(low=2/population_size, high=0.2)
 
         # 2.2 Common steps
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p, bounds)
@@ -88,9 +87,20 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
         # 2.3 Adapt for next generation
         indexes = np.where(c_fitness < fitness)[0]
-        if len(indexes) != 0:
-            u_cr = (1 - c) * u_cr + c * np.mean(cr[indexes])
-            u_f = (1 - c) * u_f + c * (np.sum(f[indexes]**2)/ np.sum(f[indexes]))
+        archive.extend(population[indexes])
+
+        if len(indexes) > 0:
+            if len(archive) > population_size:
+                archive = random.sample(archive, population_size)
+
+            weights = np.abs(fitness[indexes] - c_fitness[indexes])
+            weights /= np.sum(weights)
+            m_cr[k] = np.sum(weights * cr[indexes])
+            m_f[k] = np.sum(f[indexes]**2)/np.sum(f[indexes])
+
+            k += 1
+            if k == population_size:
+                k = 0
 
         fitness = pyade.commons.apply_fitness(population, func)
 
