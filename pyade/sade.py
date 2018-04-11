@@ -61,7 +61,7 @@ def apply(population_size: int, individual_size: int,
 
     # 2. SaDE Algorithm
     probability = 0.5
-    current_fitness = pyade.commons.apply_fitness(population, func)
+    fitness = pyade.commons.apply_fitness(population, func)
     cr_m = 0.5
     f_m = 0.5
 
@@ -77,7 +77,7 @@ def apply(population_size: int, individual_size: int,
     cr = np.random.normal(cr_m, 0.1, population_size)
     cr = np.clip(cr, 0, 1)
 
-    for iter in range(max_iters):
+    for num_iter in range(max_iters):
         # 2.1 Mutation
         # 2.1.1 Randomly choose which individuals do each mutation
         choice = np.random.rand(population_size)
@@ -88,20 +88,20 @@ def apply(population_size: int, individual_size: int,
         mutated = population.copy()
         mutated[choice_1] = pyade.commons.binary_mutation(population[choice_1], f[choice_1].reshape(sum(choice_1),1), bounds)
         mutated[choice_2] = pyade.commons.current_to_best_2_binary_mutation(population[choice_2],
-                                                                            current_fitness[choice_2],
+                                                                            fitness[choice_2],
                                                                             f[choice_2].reshape(sum(choice_2),1),
                                                                             bounds)
 
 
         # 2.2 Crossover
         crossed = pyade.commons.crossover(population, mutated, cr.reshape(population_size, 1))
-        crossed_fitness = pyade.commons.apply_fitness(crossed, func)
+        c_fitness = pyade.commons.apply_fitness(crossed, func)
 
         # 2.3 Selection
-        winners = crossed_fitness < current_fitness
+        winners = c_fitness < fitness
 
         population[winners] = crossed[winners]
-        current_fitness[winners] = crossed_fitness[winners]
+        fitness[winners] = c_fitness[winners]
 
         # 2.4 Self Adaption
         chosen_1 = np.sum(np.bitwise_and(choice_1, winners))
@@ -128,5 +128,5 @@ def apply(population_size: int, individual_size: int,
             cr = np.random.normal(cr_m, 0.1, population_size)
             cr = np.clip(cr, 0, 1)
 
-    best = np.argmin(current_fitness)
-    return population[best], current_fitness[best]
+    best = np.argmin(fitness)
+    return population[best], fitness[best]

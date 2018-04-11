@@ -7,7 +7,7 @@ from typing import Callable, Union
 
 def get_default_params():
     """
-        Returns the default parameters of the JADE Differential Evolution Algorithm
+        Returns the default parameters of the SHADE Differential Evolution Algorithm
         :return: Dict with the default parameters of the JADE Differential
         Evolution Algorithm.
         :rtype dict
@@ -16,10 +16,10 @@ def get_default_params():
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
-          func: Callable[[np.ndarray],np.ndarray],
+          func: Callable[[np.ndarray], np.ndarray],
           max_iters: int, seed: Union[int, None]) -> [np.ndarray, int]:
     """
-    Applies the standard differential evolution algorithm.
+    Applies the SHADE differential evolution algorithm.
     :param population_size: Size of the population.
     :type population_size: int
     :param individual_size: Number of gens/features of an individual.
@@ -46,7 +46,6 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     if type(individual_size) is not int or individual_size <= 0:
         raise ValueError("individual_size must be a positive integer.")
 
-
     if type(max_iters) is not int or max_iters <= 0:
         raise ValueError("max_iter must be a positive integer.")
 
@@ -57,7 +56,6 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
     if type(seed) is not int and seed is not None:
         raise ValueError("seed must be an integer or None.")
-
 
     np.random.seed(seed)
     random.seed(seed)
@@ -71,7 +69,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     fitness = pyade.commons.apply_fitness(population, func)
 
     all_indexes = list(range(population_size))
-    for iter in range(max_iters):
+    for num_iter in range(max_iters):
         # 2.1 Adaptation
         r = np.random.choice(all_indexes, population_size)
         cr = np.random.normal(m_cr[r], 0.1, population_size)
@@ -102,7 +100,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             if k == population_size:
                 k = 0
 
-        fitness = pyade.commons.apply_fitness(population, func)
+        fitness[indexes] = c_fitness[indexes]
 
     best = np.argmin(fitness)
     return population[best], fitness[best]
