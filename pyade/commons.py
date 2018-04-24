@@ -154,14 +154,13 @@ def current_to_pbest_mutation(population: np.ndarray,
     :return: Mutated population
     """
     # If there's not enough population we return it without mutating
-    if len(population) < 3:
+    if len(population) < 4:
         return population
 
     # 1. We find the best parent
     best_index = np.argsort(population_fitness)[:round(p*len(population))]
 
     p_best = np.random.choice(best_index, len(population))
-
     # 2. We choose two random parents
     parents = __parents_choice(population, 2)
     mutated = population + f * (population[p_best] - population)
@@ -189,7 +188,8 @@ def crossover(population: np.ndarray, mutated: np.ndarray,
 
 
 def selection(population: np.ndarray, new_population: np.ndarray,
-              fitness: np.ndarray, new_fitness: np.ndarray) -> np.ndarray:
+              fitness: np.ndarray, new_fitness: np.ndarray,
+              return_indexes: bool=False) -> np.ndarray:
     """
     Selects the best individuals based on their fitness.
     :param population: Last generation population.
@@ -199,10 +199,15 @@ def selection(population: np.ndarray, new_population: np.ndarray,
     :param fitness: Last generation fitness.
     :type fitness: np.ndarray
     :param new_fitness: Current generation fitness
+    :param return_indexes: When active the function also returns the individual indexes that have been modified
+    :type return_indexes: bool
     :rtype: ndarray
     :return: The selection of the best of previous generation
-     or mutated individual for the entire population.
+     and mutated individual for the entire population and optionally, the indexes changed
     """
     indexes = np.where(fitness > new_fitness)[0]
     population[indexes] = new_population[indexes]
-    return population
+    if return_indexes:
+        return population, indexes
+    else:
+        return population

@@ -1,6 +1,6 @@
 import numpy as np
 import pyade.commons
-from typing import Callable, Union
+from typing import Callable, Union, Dict, Any
 
 
 def get_default_de_params() -> dict:
@@ -10,12 +10,13 @@ def get_default_de_params() -> dict:
     Evolution Algorithm.
     :rtype dict
     """
-    return {'max_iters': 10000, 'seed': None}
+    return {'callback': None, 'max_iters': 10000, 'seed': None}
 
 
 def de(population_size: int, individual_size: int, f: Union[float, int],
        cr: Union[float, int], bounds: np.ndarray,
        func: Callable[[np.ndarray], np.ndarray],
+       callback: Callable[[Dict], Any],
        max_iters: int, seed: Union[int, None]) -> [np.ndarray, int]:
     """
     Applies the standard differential evolution algorithm.
@@ -34,6 +35,8 @@ def de(population_size: int, individual_size: int, f: Union[float, int],
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
+    :param callback: Optional function that allows read access to the state of all variables once each generation.
+    :type callback: Callable[[Dict], Any]
     :param max_iters: Number of generations after the algorithm is stopped.
     :type max_iters: int
     :param seed: Random number generation seed. Fix a number to reproduce the
@@ -72,15 +75,18 @@ def de(population_size: int, individual_size: int, f: Union[float, int],
     np.random.seed(seed)
     population = pyade.commons.init_population(population_size,
                                                individual_size, bounds)
+    fitness = pyade.commons.apply_fitness(population, func)
 
     for num_iter in range(max_iters):
-        fitness = pyade.commons.apply_fitness(population, func)
         mutated = pyade.commons.binary_mutation(population, f, bounds)
         crossed = pyade.commons.crossover(population, mutated, cr)
         c_fitness = pyade.commons.apply_fitness(crossed, func)
-        population = pyade.commons.selection(population, crossed,
-                                             fitness, c_fitness)
+        population, indexes = pyade.commons.selection(population, crossed,
+                                                      fitness, c_fitness, return_indexes=True)
 
-    fitness = pyade.commons.apply_fitness(population, func)
+        fitness[indexes] = c_fitness[indexes]
+        if callback is not None:
+            callback(**(locals()))
+
     best = np.argmin(fitness)
     return population[best], fitness[best]

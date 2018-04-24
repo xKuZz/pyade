@@ -98,9 +98,7 @@ def apply(population_size: int, individual_size: int,
         c_fitness = pyade.commons.apply_fitness(crossed, func)
 
         # 2.3 Selection
-        winners = c_fitness < fitness
-
-        population[winners] = crossed[winners]
+        population, winners = pyade.commons.selection(population, crossed, fitness, c_fitness,return_indexes=True)
         fitness[winners] = c_fitness[winners]
 
         # 2.4 Self Adaption

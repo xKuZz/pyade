@@ -70,7 +70,9 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     fitness = pyade.commons.apply_fitness(population, func)
 
     all_indexes = list(range(population_size))
-    for num_iter in range(max_iters):
+    max_evals = max_iters * init_size
+    num_evals = 0
+    while num_evals < max_evals:
         # 2.1 Adaptation
         r = np.random.choice(all_indexes, population_size)
         cr = np.random.normal(m_cr[r], 0.1, population_size)
@@ -81,15 +83,11 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p, bounds)
         crossed = pyade.commons.crossover(population, mutated, cr.reshape(len(f), 1))
         c_fitness = pyade.commons.apply_fitness(crossed, func)
-        population = pyade.commons.selection(population, crossed,
-                                             fitness, c_fitness)
-
-
-
-
+        num_evals += population_size
+        population, indexes = pyade.commons.selection(population, crossed,
+                                                      fitness, c_fitness, return_indexes=True)
 
         # 2.3 Adapt for next generation
-        indexes = np.where(c_fitness < fitness)[0]
         archive.extend(population[indexes])
 
         if len(indexes) > 0:
@@ -107,7 +105,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
         fitness[indexes] = c_fitness[indexes]
         # Adapt population size
-        new_population_size = round((4 - init_size) / max_iters * (num_iter + 1) + init_size)
+        new_population_size = round((4 - init_size) / max_evals * (num_evals + 1) + init_size)
         if population_size > new_population_size:
             population_size = new_population_size
             best_indexes = np.argsort(fitness)[:population_size]
@@ -115,5 +113,6 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             fitness = fitness[best_indexes]
             if k == population_size:
                 k = 0
+
     best = np.argmin(fitness)
     return population[best], fitness[best]

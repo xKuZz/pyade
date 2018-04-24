@@ -80,11 +80,10 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p, bounds)
         crossed = pyade.commons.crossover(population, mutated, cr.reshape(len(f), 1))
         c_fitness = pyade.commons.apply_fitness(crossed, func)
-        population = pyade.commons.selection(population, crossed,
-                                             fitness, c_fitness)
+        population, indexes = pyade.commons.selection(population, crossed,
+                                                      fitness, c_fitness, return_indexes=True)
 
         # 2.3 Adapt for next generation
-        indexes = np.where(c_fitness < fitness)[0]
         archive.extend(population[indexes])
 
         if len(indexes) > 0:
