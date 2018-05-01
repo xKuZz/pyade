@@ -158,7 +158,7 @@ def current_to_pbest_mutation(population: np.ndarray,
         return population
 
     # 1. We find the best parent
-    best_index = np.argsort(population_fitness)[:round(p*len(population))]
+    best_index = np.argsort(population_fitness)[:max(1, round(p*len(population)))]
 
     p_best = np.random.choice(best_index, len(population))
     # 2. We choose two random parents

@@ -105,7 +105,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
         fitness[indexes] = c_fitness[indexes]
         # Adapt population size
-        new_population_size = round((4 - init_size) / max_evals * (num_evals + 1) + init_size)
+        new_population_size = round((4 - init_size) / max_evals * num_evals + init_size)
         if population_size > new_population_size:
             population_size = new_population_size
             best_indexes = np.argsort(fitness)[:population_size]
