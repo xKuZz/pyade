@@ -1,23 +1,28 @@
 import pyade.commons
 import numpy as np
-from typing import Callable, Union
+from typing import Callable, Union, Dict, Any
 
 
-def get_default_params() -> dict:
+def get_default_params(dim: int) -> dict:
     """
-        Returns the default parameters of the JADE Differential Evolution Algorithm
+        Returns the default parameters of the JADE Differential Evolution Algorithm.
+        :param dim: Size of the problem (or individual).
+        :type dim: int
         :return: Dict with the default parameters of the JADE Differential
         Evolution Algorithm.
         :rtype dict
         """
-    return {'max_iters': 10000, 'seed': None}
+    pop_size = 10 * dim
+    return {'max_evals': 10000 * dim, 'individual_size': dim, 'callback': None,
+            'population_size': pop_size, 'c': 0.1, 'p': max(.05, 3/pop_size), 'seed': None}
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
-          func: Callable[[np.ndarray], np.ndarray], p: Union[int, float], c: Union[int, float],
-          max_iters: int, seed: Union[int, None]) -> [np.ndarray, int]:
+          func: Callable[[np.ndarray], float], p: Union[int, float], c: Union[int, float],
+          callback: Callable[[Dict], Any],
+          max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
     """
-    Applies the standard differential evolution algorithm.
+    Applies the JADE Differential Evolution algorithm.
     :param population_size: Size of the population.
     :type population_size: int
     :param individual_size: Number of gens/features of an individual.
@@ -33,8 +38,10 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :type p: Union[int, float]
     :param c: Variable to control parameter adoption. Must be in [0, 1].
     :type c: Union[int, float]
-    :param max_iters: Number of generations after the algorithm is stopped.
-    :type max_iters: int
+    :param callback: Optional function that allows read access to the state of all variables once each generation.
+    :type callback: Callable[[Dict], Any]
+    :param max_evals: Number of evaluations after the algorithm is stopped.
+    :type max_evals: int
     :param seed: Random number generation seed. Fix a number to reproduce the
     same results in later experiments.
     :type seed: Union[int, None]
@@ -48,8 +55,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     if type(individual_size) is not int or individual_size <= 0:
         raise ValueError("individual_size must be a positive integer.")
 
-    if type(max_iters) is not int or max_iters <= 0:
-        raise ValueError("max_iter must be a positive integer.")
+    if type(max_evals) is not int or max_evals <= 0:
+        raise ValueError("max_evals must be a positive integer.")
 
     if type(bounds) is not np.ndarray or bounds.shape != (individual_size, 2):
         raise ValueError("bounds must be a NumPy ndarray.\n"
@@ -72,8 +79,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     u_f = 0.6
 
     fitness = pyade.commons.apply_fitness(population, func)
-
-    for num_iter in range(max_iters):
+    max_iters = max_evals // population_size
+    for current_generation in range(max_iters):
         # 2.1 Generate parameter values for current generation
         cr = np.random.normal(u_cr, 0.1, population_size)
         f = np.random.rand(population_size // 3) * 1.2
@@ -89,9 +96,11 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         # 2.3 Adapt for next generation
         if len(indexes) != 0:
             u_cr = (1 - c) * u_cr + c * np.mean(cr[indexes])
-            u_f = (1 - c) * u_f + c * (np.sum(f[indexes]**2)/ np.sum(f[indexes]))
+            u_f = (1 - c) * u_f + c * (np.sum(f[indexes]**2) / np.sum(f[indexes]))
 
         fitness[indexes] = c_fitness[indexes]
+        if callback is not None:
+            callback(**(locals()))
 
     best = np.argmin(fitness)
     return population[best], fitness[best]

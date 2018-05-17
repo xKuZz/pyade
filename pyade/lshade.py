@@ -2,24 +2,28 @@ import pyade.commons
 import numpy as np
 import scipy.stats
 import random
-from typing import Callable, Union
+from typing import Callable, Union, Dict, Any
 
 
-def get_default_params():
+def get_default_params(dim: int):
     """
-        Returns the default parameters of the L-SHADE Differential Evolution Algorithm
-        :return: Dict with the default parameters of the JADE Differential
+        Returns the default parameters of the L-SHADE Differential Evolution Algorithm.
+        :param dim: Size of the problem (or individual).
+        :type dim: int
+        :return: Dict with the default parameters of the L-SHADE Differential
         Evolution Algorithm.
         :rtype dict
     """
-    return {'max_iters': 10000, 'seed': None}
+    return {'max_evals': 10000 * dim, 'population_size': 18 * dim, 'individual_size': dim,
+            'memory_size': 6, 'callback': None, 'seed': None}
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
-          func: Callable[[np.ndarray], np.ndarray],
-          max_iters: int, seed: Union[int, None]) -> [np.ndarray, int]:
+          func: Callable[[np.ndarray], np.float],
+          memory_size: int, callback: Callable[[Dict], Any],
+          max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
     """
-    Applies the standard differential evolution algorithm.
+    Applies the L-SHADE Differential Evolution Algorithm.
     :param population_size: Size of the population.
     :type population_size: int
     :param individual_size: Number of gens/features of an individual.
@@ -31,8 +35,12 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
-    :param max_iters: Number of generations after the algorithm is stopped.
-    :type max_iters: int
+    :param memory_size: Size of the internal memory.
+    :type memory_size: int
+    :param callback: Optional function that allows read access to the state of all variables once each generation.
+    :type callback: Callable[[Dict], Any]
+    :param max_evals: Number of evaluations after the algorithm is stopped.
+    :type max_evals: int
     :param seed: Random number generation seed. Fix a number to reproduce the
     same results in later experiments.
     :type seed: Union[int, None]
@@ -46,7 +54,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     if type(individual_size) is not int or individual_size <= 0:
         raise ValueError("individual_size must be a positive integer.")
 
-    if type(max_iters) is not int or max_iters <= 0:
+    if type(max_evals) is not int or max_evals <= 0:
         raise ValueError("max_iter must be a positive integer.")
 
     if type(bounds) is not np.ndarray or bounds.shape != (individual_size, 2):
@@ -63,15 +71,24 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     # 1. Initialization
     population = pyade.commons.init_population(population_size, individual_size, bounds)
     init_size = population_size
-    m_cr = np.ones(population_size) * 0.5
-    m_f = np.ones(population_size) * 0.5
+    m_cr = np.ones(memory_size) * 0.5
+    m_f = np.ones(memory_size) * 0.5
     archive = []
     k = 0
     fitness = pyade.commons.apply_fitness(population, func)
 
-    all_indexes = list(range(population_size))
-    max_evals = max_iters * init_size
+    all_indexes = list(range(memory_size))
+    current_generation = 0
     num_evals = 0
+    # Calculate max_iters
+    n = population_size
+    i = 0
+    max_iters = 0
+    while i < max_evals:
+        max_iters += 1
+        n = round((4 - n) / max_evals * i + n)
+        i += n
+
     while num_evals < max_evals:
         # 2.1 Adaptation
         r = np.random.choice(all_indexes, population_size)
@@ -97,10 +114,10 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             weights = np.abs(fitness[indexes] - c_fitness[indexes])
             weights /= np.sum(weights)
             m_cr[k] = np.sum(weights * cr[indexes])
-            m_f[k] = np.sum(f[indexes] ** 2) / np.sum(f[indexes])
+            m_f[k] = np.sum(weights * f[indexes])
 
             k += 1
-            if k == population_size:
+            if k == memory_size:
                 k = 0
 
         fitness[indexes] = c_fitness[indexes]
@@ -111,8 +128,12 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             best_indexes = np.argsort(fitness)[:population_size]
             population = population[best_indexes]
             fitness = fitness[best_indexes]
-            if k == population_size:
+            if k == init_size:
                 k = 0
+
+        if callback is not None:
+            callback(**(locals()))
+        current_generation += 1
 
     best = np.argmin(fitness)
     return population[best], fitness[best]

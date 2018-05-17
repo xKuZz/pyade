@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Callable, Union, List
+from typing import Callable, Union, List, Tuple
 
 
 def keep_bounds(population: np.ndarray,
@@ -40,7 +40,7 @@ def init_population(population_size: int, individual_size: int,
 
 
 def apply_fitness(population: np.ndarray,
-                  func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+                  func: Callable[[np.ndarray], float]) -> np.ndarray:
     """
     Applies the given fitness function to each individual of the population.
     :param population: Population to apply the current fitness function.
@@ -131,10 +131,10 @@ def current_to_best_2_binary_mutation(population: np.ndarray,
 
 
 def current_to_pbest_mutation(population: np.ndarray,
-                                      population_fitness: np.ndarray,
-                                      f: List[float],
-                                      p: float,
-                                      bounds: np.ndarray) -> np.ndarray:
+                              population_fitness: np.ndarray,
+                              f: List[float],
+                              p: float,
+                              bounds: np.ndarray) -> np.ndarray:
     """
     Calculates the mutation of the entire population based on the
     "current to p-best" mutation. This is
@@ -169,6 +169,48 @@ def current_to_pbest_mutation(population: np.ndarray,
     return keep_bounds(mutated, bounds)
 
 
+def current_to_pbest_weighted_mutation(population: np.ndarray,
+                                       population_fitness: np.ndarray,
+                                       f: np.ndarray,
+                                       f_w: np.ndarray,
+                                       p: float,
+                                       bounds: np.ndarray) -> np.ndarray:
+    """
+    Calculates the mutation of the entire population based on the
+    "current to p-best weighted" mutation. This is
+    V_{i, G} = X_{i, G} + F_w * (X_{p_best, G} - X_{i, G} + F * (X_{r1. G} - X_{r2, G}
+    :param population: Population to apply the mutation
+    :type population: np.ndarray
+    :param population_fitness: Fitness of the given population
+    :type population_fitness: np.ndarray
+    :param f: Parameter of control of the mutation. Must be in [0, 2].
+    :type f: np.ndarray
+    :param f_w: NumPy Array with the weighted version of the mutation array
+    :type f_w: np.ndarray
+    :param p: Percentage of population that can be a p-best. Muest be in (0, 1).
+    :type p: Union[int, float]
+    :param bounds: Numpy array of tuples (min, max).
+                   Each tuple represents a gen of an individual.
+    :type bounds: np.ndarray
+    :rtype: np.ndarray
+    :return: Mutated population
+    """
+    # If there's not enough population we return it without mutating
+    if len(population) < 4:
+        return population
+
+    # 1. We find the best parent
+    best_index = np.argsort(population_fitness)[:max(1, round(p*len(population)))]
+
+    p_best = np.random.choice(best_index, len(population))
+    # 2. We choose two random parents
+    parents = __parents_choice(population, 2)
+    mutated = population + f_w * (population[p_best] - population)
+    mutated += f * (population[parents[:, 0]] - population[parents[:, 1]])
+
+    return keep_bounds(mutated, bounds)
+
+
 def crossover(population: np.ndarray, mutated: np.ndarray,
               cr: Union[int, float]) -> np.ndarray:
     """
@@ -184,12 +226,14 @@ def crossover(population: np.ndarray, mutated: np.ndarray,
     :return: Current generation population.
     """
     chosen = np.random.rand(*population.shape)
+    j_rand = np.random.randint(0, population.shape[1])
+    chosen[j_rand::population.shape[1]] = 1
     return np.where(chosen < cr, population, mutated)
 
 
 def selection(population: np.ndarray, new_population: np.ndarray,
               fitness: np.ndarray, new_fitness: np.ndarray,
-              return_indexes: bool=False) -> np.ndarray:
+              return_indexes: bool=False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """
     Selects the best individuals based on their fitness.
     :param population: Last generation population.
