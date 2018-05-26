@@ -79,22 +79,35 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
     all_indexes = list(range(memory_size))
     current_generation = 0
-    num_evals = 0
+    num_evals = population_size
+    # Calculate max_iters
+    n = population_size
+    i = 0
+    max_iters = 0
+
     # Calculate max_iters
     n = population_size
     i = 0
     max_iters = 0
     while i < max_evals:
         max_iters += 1
-        n = round((4 - n) / max_evals * i + n)
+        n = round((4 - init_size) / max_evals * i + init_size)
         i += n
 
     while num_evals < max_evals:
         # 2.1 Adaptation
         r = np.random.choice(all_indexes, population_size)
         cr = np.random.normal(m_cr[r], 0.1, population_size)
+        cr = np.clip(cr, 0, 1)
+        cr[m_cr[r] == 1] = 0
         f = scipy.stats.cauchy.rvs(loc=m_f[r], scale=0.1, size=population_size)
-        p = np.random.uniform(low=2/population_size, high=0.2)
+        f[f > 1] = 0
+
+        while sum(f <= 0) != 0:
+            r = np.random.choice(all_indexes, sum(f <= 0))
+            f[f <= 0] = scipy.stats.cauchy.rvs(loc=m_f[r], scale=0.1, size=sum(f <= 0))
+
+        p = np.ones(population_size) * .11
 
         # 2.2 Common steps
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p, bounds)
@@ -113,9 +126,10 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
             weights = np.abs(fitness[indexes] - c_fitness[indexes])
             weights /= np.sum(weights)
-            m_cr[k] = np.sum(weights * cr[indexes])
-            m_f[k] = np.sum(weights * f[indexes])
-
+            m_cr[k] = np.sum(weights * cr[indexes] ** 2) / np.sum(weights * cr[indexes])
+            if np.isnan(m_cr[k]):
+                m_cr[k] = 1
+            m_f[k] = np.sum(weights * f[indexes] ** 2) / np.sum(weights * f[indexes])
             k += 1
             if k == memory_size:
                 k = 0

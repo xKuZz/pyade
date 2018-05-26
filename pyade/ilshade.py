@@ -91,7 +91,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     max_iters = 0
     while i < max_evals:
         max_iters += 1
-        n = round((4 - n) / max_evals * i + n)
+        n = round((4 - population_size) / max_evals * i + population_size)
         i += n
 
     while num_evals < max_evals:
@@ -101,8 +101,15 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         m_f[-1] = 0.9
 
         cr = np.random.normal(m_cr[r], 0.1, current_size)
-        cr[m_cr[r] < 0] = 0
+        cr = np.clip(cr, 0, 1)
+        cr[m_cr[r] == 1] = 0
         f = scipy.stats.cauchy.rvs(loc=m_f[r], scale=0.1, size=current_size)
+        f[f > 1] = 0
+        p_i = np.ones(current_size) * p
+
+        while sum(f <= 0) != 0:
+            r = np.random.choice(memory_indexes, sum(f <= 0))
+            f[f <= 0] = scipy.stats.cauchy.rvs(loc=m_f[r], scale=0.1, size=sum(f <= 0))
 
         if current_generation < (max_iters / 4):
             cr[cr < 0.5] = 0.5
@@ -114,7 +121,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             f[f > 0.9] = 0.9
 
         # 2.2 Common steps
-        mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p, bounds)
+        mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p_i, bounds)
         crossed = pyade.commons.crossover(population, mutated, cr.reshape(len(f), 1))
         c_fitness = pyade.commons.apply_fitness(crossed, func)
         num_evals += current_size
@@ -132,11 +139,11 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             weights /= np.sum(weights)
 
             if max(cr) != 0:
-                m_cr[k] = (np.sum(weights * cr[indexes]) + m_cr[-1]) / 2
+                m_cr[k] = (np.sum(weights * cr[indexes]**2) / np.sum(weights * cr[indexes]) + m_cr[-1]) / 2
             else:
                 m_cr[k] = 1
 
-            m_f[k] = np.sum(weights * f[indexes])
+            m_f[k] = np.sum(weights * f[indexes]**2) / np.sum(weights * f[indexes])
 
             k += 1
             if k == memory_size:

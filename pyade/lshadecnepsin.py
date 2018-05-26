@@ -82,7 +82,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     u_f = np.ones(memory_size) * .5
     u_cr = np.ones(memory_size) * .5
     # 1.3 Initialize memory of second control settings
-    u_freq = .5
+    u_freq = np.ones(memory_size) * .5
 
     # 1.4 Initialize covariance matrix settings
     ps, pc = .5, .4
@@ -90,10 +90,10 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     lp = 20
     freq = 0.5
     p = 0.11
-    freq_i = np.ones(population_size) * 0.5
+
 
     current_size = population_size
-    evals = population_size
+    num_evals = population_size
     k = 0
     ns_1 = []
     nf_1 = []
@@ -106,11 +106,11 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     max_iters = 0
     while i < max_evals:
         max_iters += 1
-        n = round((min_population_size - n) / max_evals * i + n)
+        n = round((min_population_size - population_size) / max_evals * i + population_size)
         i += n
 
     current_generation = 0
-    while evals < max_evals:
+    while num_evals < max_evals:
         # Mutation
         if current_generation <= (max_iters / 2):
             if current_generation <= lp:
@@ -123,25 +123,30 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
                 p1 = success_option_1 / (success_option_1 + success_option_2)
                 p2 = success_option_2 / (success_option_1 + success_option_2)
-                pass
 
             option = np.random.choice(['p1', 'p2'], p=[p1, p2], size=current_size)
             p1_indexes = np.where(option == 'p1')[0]
             p2_indexes = np.where(option == 'p2')[0]
             f = np.empty(current_size)
 
-            f[p1_indexes] = math.sin(2 * math.pi * freq * current_generation + math.pi)
-            f[p1_indexes] *= (max_iters - current_generation) / max_iters
+            f[p1_indexes] = math.sin(2 * math.pi * freq * (current_generation + 1) + math.pi)
+            f[p1_indexes] *= (max_iters - current_generation - 1) / max_iters
             f[p1_indexes] += 1
             f[p1_indexes] /= 2
 
-            f[p2_indexes] = np.sin(2 * math.pi * freq_i[p2_indexes] * current_generation)
-            f[p2_indexes] *= current_generation / max_iters
+            random_index = np.random.randint(0, memory_size)
+            freq_i = np.ones(current_size) * .5
+            freq_i[p2_indexes] = scipy.stats.cauchy.rvs(loc=u_freq[random_index], scale=0.1, size=len(p2_indexes))
+            freq_i = np.clip(freq_i, 0, 1)
+            f[p2_indexes] = np.sin(2 * math.pi * freq_i[p2_indexes] * (current_generation + 1))
+            f[p2_indexes] *= (current_generation + 1) / max_iters
+            f[p2_indexes] += 1
             f[p2_indexes] /= 2
 
         else:
             random_index = np.random.randint(0, memory_size)
             f = scipy.stats.cauchy.rvs(loc=u_f[random_index], scale=0.1, size=current_size)
+            f = np.clip(f, 0, 1)
 
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(current_size, 1),
                                                           p, bounds)
@@ -170,7 +175,6 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         b, d, b_t = np.linalg.svd(covariance_matrix)
         b = np.matrix(b)
         b_t = np.matrix(b_t)
-
         # D. Apply coordinate origin transform
         cov_population = np.empty(population.shape)
         for index in cov_indexes:
@@ -188,7 +192,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
                                                        cr[bin_indexes].reshape(len(bin_indexes), 1))
 
         crossed_fitness = pyade.commons.apply_fitness(crossed, func)
-        evals += current_size
+        num_evals += current_size
 
         # Selection
         population, indexes = pyade.commons.selection(population, crossed, fitness,
@@ -212,9 +216,15 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         if len(indexes) > 0:
             weights = np.abs(fitness[indexes] - crossed_fitness[indexes])
             weights /= np.sum(weights)
-            u_cr[k] = np.sum(weights * cr[indexes])
+            u_cr[k] = np.sum(weights * cr[indexes] ** 2) / np.sum(weights * cr[indexes])
+
             if current_generation > (max_iters / 2):
-                u_f[k] = np.sum(f[indexes] ** 2) / np.sum(f[indexes])
+                u_f[k] = np.sum(weights * f[indexes] ** 2) / np.sum(weights * f[indexes])
+
+            if lp < current_generation < (max_iters / 2):
+                u_freq[k] = np.sum(weights * freq_i[indexes] ** 2) / np.sum(weights * freq_i[indexes])
+                if np.isnan(u_freq[k]):
+                    u_freq[k] = 0.5
 
             k += 1
             if k == memory_size:
@@ -223,18 +233,19 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         fitness[indexes] = crossed_fitness[indexes]
 
         # Linear population reduction
-        new_population_size = round((min_population_size - population_size) / max_evals * evals + population_size)
+        new_population_size = round((min_population_size - population_size) / max_evals * num_evals + population_size)
         if current_size > new_population_size:
             current_size = new_population_size
             best_indexes = np.argsort(fitness)[:current_size]
             population = population[best_indexes]
             fitness = fitness[best_indexes]
-            freq_i = freq_i[best_indexes]
             if k == memory_size:
                 k = 0
 
         if callback is not None:
             callback(**(locals()))
+
+        current_generation += 1
 
     best = np.argmin(fitness)
     return population[best], fitness[best]

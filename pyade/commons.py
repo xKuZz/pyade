@@ -83,7 +83,7 @@ def binary_mutation(population: np.ndarray,
     :return: Mutated population
     """
     # If there's not enough population we return it without mutating
-    if len(population) < 3:
+    if len(population) <= 3:
         return population
 
     # 1. For each number, obtain 3 random integers that are not the number
@@ -158,9 +158,12 @@ def current_to_pbest_mutation(population: np.ndarray,
         return population
 
     # 1. We find the best parent
-    best_index = np.argsort(population_fitness)[:max(1, round(p*len(population)))]
+    p_best = []
+    for p_i in p:
+        best_index = np.argsort(population_fitness)[:max(1, int(round(p_i*len(population))))]
+        p_best.append(np.random.choice(best_index))
 
-    p_best = np.random.choice(best_index, len(population))
+    p_best = np.array(p_best)
     # 2. We choose two random parents
     parents = __parents_choice(population, 2)
     mutated = population + f * (population[p_best] - population)
@@ -227,8 +230,8 @@ def crossover(population: np.ndarray, mutated: np.ndarray,
     """
     chosen = np.random.rand(*population.shape)
     j_rand = np.random.randint(0, population.shape[1])
-    chosen[j_rand::population.shape[1]] = 1
-    return np.where(chosen < cr, population, mutated)
+    chosen[j_rand::population.shape[1]] = 0
+    return np.where(chosen <= cr, mutated, population)
 
 
 def selection(population: np.ndarray, new_population: np.ndarray,

@@ -78,6 +78,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     u_cr = 0.5
     u_f = 0.6
 
+    p = np.ones(population_size) * p
     fitness = pyade.commons.apply_fitness(population, func)
     max_iters = max_evals // population_size
     for current_generation in range(max_iters):

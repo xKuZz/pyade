@@ -79,7 +79,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
     memory_size = population_size
     memory_indexes = list(range(memory_size))
-    num_evals = 0
+    num_evals = population_size
     current_generation = 0
     p_max = .25
     p_min = p_max / 2
@@ -91,7 +91,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     max_iters = 0
     while i < max_evals:
         max_iters += 1
-        n = round((4 - n) / max_evals * i + n)
+        n = round((4 - population_size) / max_evals * i + population_size)
         i += n
 
     while num_evals < max_evals:
@@ -101,6 +101,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         m_f[-1] = 0.9
 
         cr = np.random.normal(m_cr[r], 0.1, current_size)
+        cr = np.clip(cr, 0, 1)
+        cr[m_cr[r] == 1] = 0
         cr[m_cr[r] < 0] = 0
 
         if current_generation < (max_iters / 4):
@@ -109,13 +111,19 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             cr[cr < 0.6] = 0.6
 
         f = scipy.stats.cauchy.rvs(loc=m_f[r], scale=0.1, size=current_size)
+        while sum(f <= 0) != 0:
+            r = np.random.choice(memory_indexes, sum(f <= 0))
+            f[f <= 0] = scipy.stats.cauchy.rvs(loc=m_f[r], scale=0.1, size=sum(f <= 0))
 
+        f = np.clip(f, 0, 1)
         if current_generation < 0.6 * max_iters:
-            f[f > 0.7] = 0.7
+            f = np.clip(f, 0, 0.7)
+
 
         # 2.2 Common steps
         # 2.2.1 Calculate weights for mutation
-        weighted = f.reshape(len(f), 1)
+        weighted = f.copy().reshape(len(f), 1)
+
         if num_evals < 0.2 * max_evals:
             weighted *= .7
         elif num_evals < 0.4 * max_evals:
@@ -123,10 +131,13 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         else:
             weighted *= 1.2
 
+        weighted = np.clip(weighted, 0, 1)
+        # print(min(fitness), min(cr), max(cr), min(f), max(f))
         mutated = pyade.commons.current_to_pbest_weighted_mutation(population, fitness, f.reshape(len(f), 1),
                                                                    weighted, p, bounds)
         crossed = pyade.commons.crossover(population, mutated, cr.reshape(len(f), 1))
         c_fitness = pyade.commons.apply_fitness(crossed, func)
+
         num_evals += current_size
         population, indexes = pyade.commons.selection(population, crossed,
                                                       fitness, c_fitness, return_indexes=True)
@@ -142,11 +153,11 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             weights /= np.sum(weights)
 
             if max(cr) != 0:
-                m_cr[k] = (np.sum(weights * cr[indexes]) + m_cr[-1]) / 2
+                m_cr[k] = (np.sum(weights * cr[indexes]**2) / np.sum(weights * cr[indexes]) + m_cr[-1]) / 2
             else:
                 m_cr[k] = 1
 
-            m_f[k] = np.sum(weights * f[indexes])
+            m_f[k] = np.sum(weights * f[indexes]**2) / np.sum(weights * f[indexes])
 
             k += 1
             if k == memory_size:
@@ -169,5 +180,6 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             callback(**(locals()))
 
         current_generation += 1
+
     best = np.argmin(fitness)
     return population[best], fitness[best]

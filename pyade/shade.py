@@ -83,8 +83,16 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         # 2.1 Adaptation
         r = np.random.choice(all_indexes, population_size)
         cr = np.random.normal(m_cr[r], 0.1, population_size)
+        cr = np.clip(cr, 0, 1)
+        cr[cr == 1] = 0
         f = scipy.stats.cauchy.rvs(loc=m_f[r], scale=0.1, size=population_size)
-        p = np.random.uniform(low=2/population_size, high=0.2)
+        f[f > 1] = 0
+
+        while sum(f <= 0) != 0:
+            r = np.random.choice(all_indexes, sum(f <= 0))
+            f[f <= 0] = scipy.stats.cauchy.rvs(loc=m_f[r], scale=0.1, size=sum(f <= 0))
+
+        p = np.random.uniform(low=2/population_size, high=0.2, size=population_size)
 
         # 2.2 Common steps
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p, bounds)
