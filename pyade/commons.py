@@ -160,7 +160,7 @@ def current_to_pbest_mutation(population: np.ndarray,
     # 1. We find the best parent
     p_best = []
     for p_i in p:
-        best_index = np.argsort(population_fitness)[:max(1, int(round(p_i*len(population))))]
+        best_index = np.argsort(population_fitness)[:max(2, int(round(p_i*len(population))))]
         p_best.append(np.random.choice(best_index))
 
     p_best = np.array(p_best)
@@ -168,6 +168,42 @@ def current_to_pbest_mutation(population: np.ndarray,
     parents = __parents_choice(population, 2)
     mutated = population + f * (population[p_best] - population)
     mutated += f * (population[parents[:, 0]] - population[parents[:, 1]])
+
+    return keep_bounds(mutated, bounds)
+
+
+def current_to_rand_1_mutation(population: np.ndarray,
+                              population_fitness: np.ndarray,
+                              k: List[float],
+                              f: List[float],
+                              bounds: np.ndarray) -> np.ndarray:
+    """
+    Calculates the mutation of the entire population based on the
+    "current to rand/1" mutation. This is
+    U_{i, G} = X_{i, G} + K * (X_{r1, G} - X_{i, G} + F * (X_{r2. G} - X_{r3, G}
+    :param population: Population to apply the mutation
+    :type population: np.ndarray
+    :param population_fitness: Fitness of the given population
+    :type population_fitness: np.ndarray
+    :param f: Parameter of control of the mutation. Must be in [0, 2].
+    :type f: Union[int, float]
+    :param p: Percentage of population that can be a p-best. Muest be in (0, 1).
+    :type p: Union[int, float]
+    :param bounds: Numpy array of tuples (min, max).
+                   Each tuple represents a gen of an individual.
+    :type bounds: np.ndarray
+    :rtype: np.ndarray
+    :return: Mutated population
+    """
+    # If there's not enough population we return it without mutating
+    if len(population) <= 3:
+        return population
+
+    # 1. For each number, obtain 3 random integers that are not the number
+    parents = __parents_choice(population, 3)
+    # 2. Apply the formula to each set of parents
+    mutated = k * (population[parents[:, 0]] - population)
+    mutated += f * (population[parents[:, 1]] - population[parents[:, 2]])
 
     return keep_bounds(mutated, bounds)
 
@@ -203,7 +239,7 @@ def current_to_pbest_weighted_mutation(population: np.ndarray,
         return population
 
     # 1. We find the best parent
-    best_index = np.argsort(population_fitness)[:max(1, round(p*len(population)))]
+    best_index = np.argsort(population_fitness)[:max(2, round(p*len(population)))]
 
     p_best = np.random.choice(best_index, len(population))
     # 2. We choose two random parents

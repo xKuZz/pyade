@@ -135,7 +135,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             f[p1_indexes] /= 2
 
             random_index = np.random.randint(0, memory_size)
-            freq_i = np.ones(current_size) * .5
+
+            freq_i = np.empty(current_size)
             freq_i[p2_indexes] = scipy.stats.cauchy.rvs(loc=u_freq[random_index], scale=0.1, size=len(p2_indexes))
             freq_i = np.clip(freq_i, 0, 1)
             f[p2_indexes] = np.sin(2 * math.pi * freq_i[p2_indexes] * (current_generation + 1))
@@ -146,19 +147,30 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         else:
             random_index = np.random.randint(0, memory_size)
             f = scipy.stats.cauchy.rvs(loc=u_f[random_index], scale=0.1, size=current_size)
-            f = np.clip(f, 0, 1)
+
+            f[f > 1] = 0
+            while sum(f <= 0) != 0:
+                r = np.random.choice(list(range(memory_size)), sum(f <= 0))
+                f[f <= 0] = scipy.stats.cauchy.rvs(loc=u_f[r], scale=0.1, size=sum(f <= 0))
 
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(current_size, 1),
-                                                          p, bounds)
+                                                          np.ones(current_size) * p, bounds)
 
         # Crossover
         random_index = np.random.randint(0, memory_size)
         cr = np.random.normal(loc=u_cr[random_index], scale=0.1, size=current_size)
+        cr = np.clip(cr, 0, 1)
+        cr[u_cr[random_index] == 1] = 0
+        cr[cr == 1] = 0
         randoms = np.random.rand(current_size)
         cov_indexes = np.where(randoms < pc)[0]
-        bin_indexes = np.where(randoms > pc)[0]
+        bin_indexes = np.where(randoms >= pc)[0]
 
         crossed = np.empty(population.shape)
+        # Crossover: Binomial Crossover
+        crossed[bin_indexes] = pyade.commons.crossover(population[bin_indexes], mutated[bin_indexes],
+                                                       cr[bin_indexes].reshape(len(bin_indexes), 1))
+
         # Covariance matrix learning with euclidean neighborhood
         # A. Search for best in population
         best_index = np.argsort(fitness)
@@ -177,19 +189,16 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         b_t = np.matrix(b_t)
         # D. Apply coordinate origin transform
         cov_population = np.empty(population.shape)
-        for index in cov_indexes:
-            cov_population[index] = np.array(b_t * np.matrix(population[index]).T).T
-            mutated[index] = np.array(b_t * np.matrix(mutated[index]).T).T
+
+        cov_population[cov_indexes] = np.array(b_t * np.matrix(population[cov_indexes]).T).T
+        mutated[cov_indexes] = np.array(b_t * np.matrix(mutated[cov_indexes]).T).T
 
         crossed[cov_indexes] = pyade.commons.crossover(population[cov_indexes], mutated[cov_indexes],
                                                        cr[cov_indexes].reshape(len(cov_indexes), 1))
-        # E. Go back the te original coordinate system
-        for index in cov_indexes:
-            crossed[index] = np.array(b * np.matrix(crossed[index]).T).T
 
-        # Crossover: Binomial Crossover
-        crossed[bin_indexes] = pyade.commons.crossover(population[bin_indexes], mutated[bin_indexes],
-                                                       cr[bin_indexes].reshape(len(bin_indexes), 1))
+        # E. Go back the te original coordinate system
+
+        crossed[cov_indexes] = np.array(b * np.matrix(crossed[cov_indexes]).T).T
 
         crossed_fitness = pyade.commons.apply_fitness(crossed, func)
         num_evals += current_size
@@ -216,13 +225,16 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         if len(indexes) > 0:
             weights = np.abs(fitness[indexes] - crossed_fitness[indexes])
             weights /= np.sum(weights)
-            u_cr[k] = np.sum(weights * cr[indexes] ** 2) / np.sum(weights * cr[indexes])
+            if max(cr[indexes]) != 0:
+                u_cr[k] = np.sum(weights * cr[indexes] ** 2) / np.sum(weights * cr[indexes])
 
             if current_generation > (max_iters / 2):
                 u_f[k] = np.sum(weights * f[indexes] ** 2) / np.sum(weights * f[indexes])
 
             if lp < current_generation < (max_iters / 2):
-                u_freq[k] = np.sum(weights * freq_i[indexes] ** 2) / np.sum(weights * freq_i[indexes])
+                chosen = np.logical_and(np.array(option == 'p2', dtype=np.bool), winners)
+                if len(freq_i[chosen]) != 0:
+                    u_freq[k] = np.mean(freq_i[chosen])
                 if np.isnan(u_freq[k]):
                     u_freq[k] = 0.5
 
@@ -246,6 +258,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             callback(**(locals()))
 
         current_generation += 1
+        # print(min(fitness), min(cr), max(cr), min(f), max(f), current_size, )
 
     best = np.argmin(fitness)
     return population[best], fitness[best]
