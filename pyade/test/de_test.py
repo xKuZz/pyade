@@ -1,6 +1,16 @@
 import numpy as np
-import pyade.commons
+
 import pyade.de
+import pyade.jade
+import pyade.sade
+import pyade.shade
+import pyade.lshade
+import pyade.ilshade
+import pyade.jso
+import pyade.lshadecnepsin
+import pyade.mpede
+import pyade.commons
+
 import random
 
 random.seed(0)
@@ -27,7 +37,7 @@ def test_boundaries():
 
         a /= 2
         b /= 2
-        pop = pyade.commons.keep_bounds(pop, [[a, b] * ind_size])
+        pop = pyade.commons.keep_bounds(pop, np.array([[a, b] * ind_size]))
         assert pop.min() >= a
         assert pop.min() <= b
 
@@ -35,19 +45,46 @@ def test_boundaries():
 def my_fitness(x: np.ndarray):
     return (x**2).sum()
 
-#TODO: Comprobar que mejor, peor y media/mediana mejora al ejecutar
-#TODO: Apuntar hitos para ficheros de texto
+def my_callback(**kwargs):
+    global output
+    if not output['initialized']:
+        output['min']: np.min(kwargs['fitness'])
+        output['mean']: np.mean(kwargs['fitness'])
+        output['max']: np.max(kwargs['fitness'])
+        ordered = sorted(kwargs['fitness'])
+        output['median'] = ordered[len(ordered) // 2]
 
-def test_differential_evolution():
-    params = pyade.de.get_default_de_params()
-    params['population_size'] = 50
-    params['individual_size'] = 10
-    params['max_iters'] = 2000
-    params['f'] = 1
-    params['cr'] = 0.5
-    params['bounds'] = np.array([[-100, 100]] * params['individual_size'])
-    params['func'] = my_fitness
+    if np.random.rand() < 0.3:
+        new_min = np.min(kwargs['fitness'])
+        new_mean = np.mean(kwargs['fitness'])
+        new_max = np.max(kwargs['fitness'])
+        ordered = sorted(kwargs['fitness'])
+        new_median = ordered[len(ordered) // 2]
 
-    solution, fitness = pyade.de.de(**params)
-    assert len(solution) == params['individual_size']
-    assert fitness == params['func'](solution)
+        assert (new_min <= output['min'])
+        assert (new_mean <= output['mean'])
+        assert (new_max <= output['max'])
+        assert (new_median <= output['median'])
+
+        output['min'] = new_min
+        output['mean'] = new_mean
+        output['max'] = new_max
+        output['median'] = new_median
+
+
+def test_algorithms():
+    global output
+
+    algorithms = [pyade.de, pyade.sade, pyade.jade, pyade.shade, pyade.lshade, pyade.lshadecnepsin, pyade.ilshade,
+                  pyade.jso, pyade.mpede]
+
+    for algorithm in algorithms:
+        params = algorithm.get_default_params(dim=10)
+        params['max_evals'] = 4000
+        params['bounds'] = np.array([[-100, 100]] * params['individual_size'])
+        params['func'] = my_fitness
+        params['callback'] = my_callback
+
+        output = {'initialized': False, 'min': np.inf, 'max': np.inf, 'mean': np.inf, 'median': np.inf}
+
+        algorithm.apply(**params)

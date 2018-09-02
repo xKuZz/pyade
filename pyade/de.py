@@ -12,7 +12,7 @@ def get_default_params(dim: int) -> dict:
     Evolution Algorithm.
     :rtype dict
     """
-    return {'callback': None, 'max_evals': 10000 * dim, 'seed': None,
+    return {'callback': None, 'max_evals': 10000 * dim, 'seed': None, 'cross': 'bin',
             'f': 0.5, 'cr': 0.9, 'individual_size': dim, 'population_size': 10 * dim}
 
 
@@ -20,6 +20,7 @@ def apply(population_size: int, individual_size: int, f: Union[float, int],
           cr: Union[float, int], bounds: np.ndarray,
           func: Callable[[np.ndarray], float],
           callback: Callable[[Dict], Any],
+          cross: str,
           max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
     """
     Applies the standard differential evolution algorithm.
@@ -40,6 +41,8 @@ def apply(population_size: int, individual_size: int, f: Union[float, int],
     :type func: Callable[[np.ndarray], float]
     :param callback: Optional function that allows read access to the state of all variables once each generation.
     :type callback: Callable[[Dict], Any]
+    :param cross: Indicates whether to use the binary crossover('bin') or the exponential crossover('exp').
+    :type cross: str
     :param max_evals: Number of evaluations after the algorithm is stopped.
     :type max_evals: int
     :param seed: Random number generation seed. Fix a number to reproduce the
@@ -71,6 +74,8 @@ def apply(population_size: int, individual_size: int, f: Union[float, int],
                          "The array must be of individual_size length. "
                          "Each row must have 2 elements.")
 
+    if type(cross) is not str and cross not in ['bin', 'exp']:
+        raise ValueError("cross must be a string and must be one of \'bin\' or \'cross\'")
     if type(seed) is not int and seed is not None:
         raise ValueError("seed must be an integer or None.")
 
@@ -83,7 +88,11 @@ def apply(population_size: int, individual_size: int, f: Union[float, int],
     max_iters = max_evals // population_size
     for current_generation in range(max_iters):
         mutated = pyade.commons.binary_mutation(population, f, bounds)
-        crossed = pyade.commons.crossover(population, mutated, cr)
+        if cross == 'bin':
+            crossed = pyade.commons.crossover(population, mutated, cr)
+        else:
+            crossed = pyade.commons.exponential_crossover(population, mutated, cr)
+
         c_fitness = pyade.commons.apply_fitness(crossed, func)
         population, indexes = pyade.commons.selection(population, crossed,
                                                       fitness, c_fitness, return_indexes=True)

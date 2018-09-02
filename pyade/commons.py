@@ -133,7 +133,7 @@ def current_to_best_2_binary_mutation(population: np.ndarray,
 def current_to_pbest_mutation(population: np.ndarray,
                               population_fitness: np.ndarray,
                               f: List[float],
-                              p: float,
+                              p: Union[float, np.ndarray, int],
                               bounds: np.ndarray) -> np.ndarray:
     """
     Calculates the mutation of the entire population based on the
@@ -146,7 +146,7 @@ def current_to_pbest_mutation(population: np.ndarray,
     :param f: Parameter of control of the mutation. Must be in [0, 2].
     :type f: Union[int, float]
     :param p: Percentage of population that can be a p-best. Muest be in (0, 1).
-    :type p: Union[int, float]
+    :type p: Union[int, float, np.ndarray]
     :param bounds: Numpy array of tuples (min, max).
                    Each tuple represents a gen of an individual.
     :type bounds: np.ndarray
@@ -254,7 +254,7 @@ def crossover(population: np.ndarray, mutated: np.ndarray,
               cr: Union[int, float]) -> np.ndarray:
     """
     Crosses gens from individuals of the last generation and the mutated ones
-    based on the crossover rate.
+    based on the crossover rate. Binary crossover
     :param population: Previous generation population.
     :type population: np.ndarray
     :param mutated: Mutated population.
@@ -268,6 +268,37 @@ def crossover(population: np.ndarray, mutated: np.ndarray,
     j_rand = np.random.randint(0, population.shape[1])
     chosen[j_rand::population.shape[1]] = 0
     return np.where(chosen <= cr, mutated, population)
+
+def exponential_crossover(population: np.ndarray, mutated: np.ndarray,
+                          cr: Union[int, float]) -> np.ndarray:
+    """
+        Crosses gens from individuals of the last generation and the mutated ones
+        based on the crossover rate. Exponential crossover.
+        :param population: Previous generation population.
+        :type population: np.ndarray
+        :param mutated: Mutated population.
+        :type population: np.ndarray
+        :param cr: Crossover rate. Must be in [0,1].
+        :type population: Union[int, float]
+        :rtype: np.ndarray
+        :return: Current generation population.
+    """
+    if cr is int or float:
+        cr = np.array([cr] * len(population))
+    def __exponential_crossover_1(x: np.ndarray, y: np.ndarray, cr: Union[int, float]) -> np.ndarray:
+        z = x.copy()
+        n = len(x)
+        k = np.random.randint(0, n)
+        j = k
+        l = 0
+        while True:
+            z[j] = y[j]
+            j = (j + 1) % n
+            l += 1
+            if np.random.randn() >= cr or l == n:
+                return z
+
+    return np.array([__exponential_crossover_1(population[i], mutated[i], cr[i]) for i in range(len(population))])
 
 
 def selection(population: np.ndarray, new_population: np.ndarray,

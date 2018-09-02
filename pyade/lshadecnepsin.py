@@ -91,7 +91,6 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     freq = 0.5
     p = 0.11
 
-
     current_size = population_size
     num_evals = population_size
     k = 0
@@ -138,12 +137,21 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
             freq_i = np.empty(current_size)
             freq_i[p2_indexes] = scipy.stats.cauchy.rvs(loc=u_freq[random_index], scale=0.1, size=len(p2_indexes))
-            freq_i = np.clip(freq_i, 0, 1)
+
             f[p2_indexes] = np.sin(2 * math.pi * freq_i[p2_indexes] * (current_generation + 1))
             f[p2_indexes] *= (current_generation + 1) / max_iters
             f[p2_indexes] += 1
             f[p2_indexes] /= 2
 
+            random_index = np.random.randint(0, memory_size)
+            f = scipy.stats.cauchy.rvs(loc=u_f[random_index], scale=0.1, size=current_size)
+
+            f[f > 1] = 0
+            while sum(f <= 0) != 0:
+                r = np.random.choice(list(range(memory_size)), sum(f <= 0))
+                f[f <= 0] = scipy.stats.cauchy.rvs(loc=u_f[r], scale=0.1, size=sum(f <= 0))
+
+            f = np.clip(f, 0.05, 1)
         else:
             random_index = np.random.randint(0, memory_size)
             f = scipy.stats.cauchy.rvs(loc=u_f[random_index], scale=0.1, size=current_size)
@@ -152,6 +160,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             while sum(f <= 0) != 0:
                 r = np.random.choice(list(range(memory_size)), sum(f <= 0))
                 f[f <= 0] = scipy.stats.cauchy.rvs(loc=u_f[r], scale=0.1, size=sum(f <= 0))
+
+            f = np.clip(f, 0.05, 1)
 
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(current_size, 1),
                                                           np.ones(current_size) * p, bounds)
@@ -166,7 +176,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         cov_indexes = np.where(randoms < pc)[0]
         bin_indexes = np.where(randoms >= pc)[0]
 
-        crossed = np.empty(population.shape)
+        crossed = population.copy()
         # Crossover: Binomial Crossover
         crossed[bin_indexes] = pyade.commons.crossover(population[bin_indexes], mutated[bin_indexes],
                                                        cr[bin_indexes].reshape(len(bin_indexes), 1))
@@ -181,25 +191,34 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         indexes = np.argsort(distances)[:round(ps * current_size)]
 
         # C. Compute covariance matrix and its matrix decomposition
+        xsel = population[indexes]
+        sel = round(ps * current_size)
+        xmean = np.mean(xsel, axis=1)
 
-        covariance_matrix = np.cov(population[indexes], rowvar=False)
+        aux = np.ones((sel, 1), dtype=np.bool)
+        xsel = xsel.T
+        c = 1 / (sel - 1) * np.dot(xsel - xmean, (xsel - xmean).T)
+        c = np.triu(c) + np.triu(c, 1).T
+        r, d = np.linalg.eig(c)
+        if np.max(np.diag(d)) > 1e20 * np.min(np.diag(d)):
+            tmp = np.max(np.diag(d))/1e20 - np.min(np.diag(d))
+            c = c + tmp * np.eye(individual_size)
+            r, d = np.linalg.eig(c)
 
-        b, d, b_t = np.linalg.svd(covariance_matrix)
-        b = np.matrix(b)
-        b_t = np.matrix(b_t)
+        tm = d
+        tm_ = d.T
+
         # D. Apply coordinate origin transform
-        cov_population = np.empty(population.shape)
 
-        cov_population[cov_indexes] = np.array(b_t * np.matrix(population[cov_indexes]).T).T
-        mutated[cov_indexes] = np.array(b_t * np.matrix(mutated[cov_indexes]).T).T
+        cov_population = np.dot(population[cov_indexes], np.matrix(tm))
+        cov_mutated = np.dot(mutated[cov_indexes], np.matrix(tm))
 
-        crossed[cov_indexes] = pyade.commons.crossover(population[cov_indexes], mutated[cov_indexes],
-                                                       cr[cov_indexes].reshape(len(cov_indexes), 1))
+        cov_crossed = pyade.commons.crossover(cov_population, cov_mutated,
+                                              cr[cov_indexes].reshape(len(cov_indexes), 1))
 
         # E. Go back the te original coordinate system
 
-        crossed[cov_indexes] = np.array(b * np.matrix(crossed[cov_indexes]).T).T
-
+        crossed[cov_indexes] = np.dot(cov_crossed, np.matrix(tm_).T)
         crossed_fitness = pyade.commons.apply_fitness(crossed, func)
         num_evals += current_size
 
@@ -258,7 +277,6 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             callback(**(locals()))
 
         current_generation += 1
-        # print(min(fitness), min(cr), max(cr), min(f), max(f), current_size, )
 
     best = np.argmin(fitness)
     return population[best], fitness[best]

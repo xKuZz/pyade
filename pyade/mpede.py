@@ -20,7 +20,6 @@ def get_default_params(dim: int) -> dict:
             }
 
 
-#TODO: REVISAR DOCUMENTACIÓN
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
           func: Callable[[np.ndarray], float],
           callback: Callable[[Dict], Any],
@@ -32,7 +31,10 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     Applies the MPEDE differential evolution algorithm.
     :param population_size: Size of the population (NP-max)
     :type population_size: int
-    :param min_population_size: Lowest size of the population (NP-min)
+    :param ng: Number of generations after the best strategy is updated.
+    :type ng: int
+    :param lambdas: Percentages of each of the 4 subpopulations.
+    :type lambdas: Union[list, np.array]
     :param individual_size: Number of gens/features of an individual.
     :type individual_size: int
     :param bounds: Numpy ndarray with individual_size rows and 2 columns.
@@ -42,21 +44,51 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
-    :param memory_size: Size of the internal memory.
-    :type memory_size: int
     :param callback: Optional function that allows read access to the state of all variables once each generation.
     :type callback: Callable[[Dict], Any]
     :param max_evals: Number of evaluations after the algorithm is stopped.
     :type max_evals: int
     :param seed: Random number generation seed. Fix a number to reproduce the
     same results in later experiments.
+    :param p: Parameter to choose the best vectors. Must be in (0, 1].
+    :type p: Union[int, float]
+    :param c: Variable to control parameter adoption. Must be in [0, 1].
+    :type c: Union[int, float]
     :type seed: Union[int, None]
     :return: A pair with the best solution found and its fitness.
     :rtype [np.ndarray, int]
+
     """
 
     # 0. Check external parameters
+    if type(population_size) is not int or population_size <= 0:
+        raise ValueError("population_size must be a positive integer.")
 
+    if type(individual_size) is not int or individual_size <= 0:
+        raise ValueError("individual_size must be a positive integer.")
+
+    if type(max_evals) is not int or max_evals <= 0:
+        raise ValueError("max_evals must be a positive integer.")
+
+    if type(bounds) is not np.ndarray or bounds.shape != (individual_size, 2):
+        raise ValueError("bounds must be a NumPy ndarray.\n"
+                         "The array must be of individual_size length. "
+                         "Each row must have 2 elements.")
+
+    if type(seed) is not int and seed is not None:
+        raise ValueError("seed must be an integer or None.")
+
+    if type(p) not in [int, float] and 0 < p <= 1:
+        raise ValueError("p must be a real number in (0, 1].")
+
+    if type(c) not in [int, float] and 0 <= c <= 1:
+        raise ValueError("c must be an real number in [0, 1].")
+
+    if type(ng) is not int:
+        raise ValueError("ng must be a positive integer number.")
+
+    if type(lambdas) not in [list, np.ndarray] and len(lambdas) != 4 and sum(lambdas) != 1:
+        raise ValueError("lambdas must be a list or npdarray of 4 numbers that sum 1.")
 
     np.random.seed(seed)
 
@@ -113,7 +145,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
         # 2.3 Do the crossover and calculate new fitness
         crossed1 = pyade.commons.crossover(pops[0], mutated1, cr[0].reshape(len(cr[0]), 1))
-        crossed2 = pyade.commons.crossover(pops[1], mutated2, cr[1].reshape(len(cr[1]), 1))
+        crossed2 = mutated2
         crossed3 = pyade.commons.crossover(pops[2], mutated3, cr[2].reshape(len(cr[2]), 1))
 
         c_fitness1 = pyade.commons.apply_fitness(crossed1, func)
