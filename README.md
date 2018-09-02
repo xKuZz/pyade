@@ -7,7 +7,7 @@ To easily install the package you can use PyPy
 
 
 ```bash
-pip install pyade-python
+pip install numpy scipy pyade-python
 ```
 
 ## Library use
