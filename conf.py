@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath('pyade'))
 # -- Project information -----------------------------------------------------
 
 project = 'PyADE'
-copyright = '2018, David Criado Ramón'
-author = 'David Criado Ramón'
+copyright = '2018, David Criado Ramon'
+author = 'David Criado Ramon'
 
 # The short X.Y version
 version = ''
