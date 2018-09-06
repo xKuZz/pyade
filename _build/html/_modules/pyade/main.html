@@ -1,0 +1,160 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pyade.main &#8212; PyADE  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pyade.main</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">cProfile</span>
+<span class="kn">import</span> <span class="nn">pyade.de</span>
+<span class="kn">import</span> <span class="nn">pyade.jade</span>
+<span class="kn">import</span> <span class="nn">pyade.sade</span>
+<span class="kn">import</span> <span class="nn">pyade.shade</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pstats</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">pyade.lshade</span>
+<span class="kn">import</span> <span class="nn">pyade.lshadecnepsin</span>
+<span class="kn">import</span> <span class="nn">pyade.jso</span>
+<span class="kn">import</span> <span class="nn">scipy.optimize</span>
+<span class="kn">import</span> <span class="nn">pyade.mpede</span>
+<span class="kn">import</span> <span class="nn">cec2014</span>
+<span class="kn">import</span> <span class="nn">pyade.ilshade</span>
+<span class="kn">import</span> <span class="nn">pyade.saepsdemmts</span>
+
+
+
+
+<div class="viewcode-block" id="my_callback"><a class="viewcode-back" href="../../pyade.html#pyade.main.my_callback">[docs]</a><span class="k">def</span> <span class="nf">my_callback</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">output</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;current_generation&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="nb">round</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max_iters&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> \
+      <span class="ow">or</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;current_generation&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max_iters&#39;</span><span class="p">]:</span>
+            <span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;fitness&#39;</span><span class="p">])</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;current_generation&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="mi">100</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;fitness&#39;</span><span class="p">][</span><span class="n">best</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="my_callback_evals"><a class="viewcode-back" href="../../pyade.html#pyade.main.my_callback_evals">[docs]</a><span class="k">def</span> <span class="nf">my_callback_evals</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">output</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max_evals&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">10</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">)</span> <span class="o">&lt;</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;num_evals&#39;</span><span class="p">]</span> \
+            <span class="ow">or</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;num_evals&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max_evals&#39;</span><span class="p">]:</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;fitness&#39;</span><span class="p">])</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;num_evals&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;fitness&#39;</span><span class="p">][</span><span class="n">best</span><span class="p">]))</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">global</span> <span class="n">output</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="mi">30</span>
+
+    <span class="n">modules</span> <span class="o">=</span>  <span class="p">[</span><span class="n">pyade</span><span class="o">.</span><span class="n">lshadecnepsin</span>
+                <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">modules</span><span class="p">:</span>
+        <span class="n">current_module</span> <span class="o">=</span> <span class="n">module</span>
+        <span class="n">find_max</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;C:</span><span class="se">\\</span><span class="s1">Users</span><span class="se">\\</span><span class="s1">xKuZz</span><span class="se">\\</span><span class="s1">Desktop</span><span class="se">\\</span><span class="s1">TFG</span><span class="se">\\</span><span class="s1">Resultados</span><span class="se">\\</span><span class="si">{current_module.__name__}</span><span class="s1">.csv&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">archivo</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">51</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Ejecución </span><span class="si">{i}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>
+                    <span class="n">num_func</span> <span class="o">=</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Función </span><span class="si">{num_func}</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="n">bench</span> <span class="o">=</span> <span class="n">cec2014</span><span class="o">.</span><span class="n">Benchmark</span><span class="p">(</span><span class="n">num_func</span><span class="p">)</span>
+                    <span class="n">func</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">bench</span><span class="o">.</span><span class="n">get_fitness</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                    <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">params</span> <span class="o">=</span> <span class="n">current_module</span><span class="o">.</span><span class="n">get_default_params</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+                    <span class="c1">#params[&#39;cross&#39;] = &#39;exp&#39;</span>
+                    <span class="n">params</span><span class="p">[</span><span class="s1">&#39;bounds&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">]]</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;individual_size&#39;</span><span class="p">])</span>
+                    <span class="n">params</span><span class="p">[</span><span class="s1">&#39;func&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span>
+                    <span class="n">params</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+
+                    <span class="n">params</span><span class="p">[</span><span class="s1">&#39;callback&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">my_callback</span>
+                    <span class="n">sol</span><span class="p">,</span> <span class="n">fit</span> <span class="o">=</span> <span class="n">current_module</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">generacion</span><span class="p">,</span> <span class="n">fitness</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+                        <span class="n">archivo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{generacion}</span><span class="s1">, </span><span class="si">{num_func}</span><span class="s1">, {fitness - 100 * num_func}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">PyADE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, David Criado Ramón.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

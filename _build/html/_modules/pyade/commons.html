@@ -1,0 +1,420 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pyade.commons &#8212; PyADE  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pyade.commons</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+
+<div class="viewcode-block" id="keep_bounds"><a class="viewcode-back" href="../../pyade.html#pyade.commons.keep_bounds">[docs]</a><span class="k">def</span> <span class="nf">keep_bounds</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                <span class="n">bounds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Constrains the population to its proper limits.</span>
+<span class="sd">    Any value outside its bounded ranged is clipped.</span>
+<span class="sd">    :param population: Current population that may not be constrained.</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param bounds: Numpy array of tuples (min, max).</span>
+<span class="sd">                   Each tuple represents a gen of an individual.</span>
+<span class="sd">    :type bounds: np.ndarray</span>
+<span class="sd">    :rtype np.ndarray</span>
+<span class="sd">    :return: Population constrained within its bounds.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">minimum</span> <span class="o">=</span> <span class="p">[</span><span class="n">bound</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">bound</span> <span class="ow">in</span> <span class="n">bounds</span><span class="p">]</span>
+    <span class="n">maximum</span> <span class="o">=</span> <span class="p">[</span><span class="n">bound</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">bound</span> <span class="ow">in</span> <span class="n">bounds</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="init_population"><a class="viewcode-back" href="../../pyade.html#pyade.commons.init_population">[docs]</a><span class="k">def</span> <span class="nf">init_population</span><span class="p">(</span><span class="n">population_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">individual_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                    <span class="n">bounds</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a random population within its constrained bounds.</span>
+<span class="sd">    :param population_size: Number of individuals desired in the population.</span>
+<span class="sd">    :type population_size: int</span>
+<span class="sd">    :param individual_size: Number of features/gens.</span>
+<span class="sd">    :type individual_size: int</span>
+<span class="sd">    :param bounds: Numpy array of tuples (min, max).</span>
+<span class="sd">                   Each tuple represents a gen of an individual.</span>
+<span class="sd">    :type bounds: Union[np.ndarray, list]</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    :return: Initialized population.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">population</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">population_size</span><span class="p">,</span> <span class="n">individual_size</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">keep_bounds</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="apply_fitness"><a class="viewcode-back" href="../../pyade.html#pyade.commons.apply_fitness">[docs]</a><span class="k">def</span> <span class="nf">apply_fitness</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                  <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Applies the given fitness function to each individual of the population.</span>
+<span class="sd">    :param population: Population to apply the current fitness function.</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param func: Function that is used to calculate the fitness.</span>
+<span class="sd">    :type func: np.ndarray</span>
+<span class="sd">    :rtype np.ndarray</span>
+<span class="sd">    :return: Numpy array of fitness for each individual.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">func</span><span class="p">(</span><span class="n">individual</span><span class="p">)</span> <span class="k">for</span> <span class="n">individual</span> <span class="ow">in</span> <span class="n">population</span><span class="p">])</span></div>
+
+
+<span class="k">def</span> <span class="nf">__parents_choice</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n_parents</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="n">pob_size</span> <span class="o">=</span> <span class="n">population</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">choices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">indices</span><span class="p">((</span><span class="n">pob_size</span><span class="p">,</span> <span class="n">pob_size</span><span class="p">))[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">choices</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">choices</span> <span class="o">=</span> <span class="n">choices</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">pob_size</span><span class="p">,</span> <span class="n">pob_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">n_parents</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">parents</span>
+
+
+<div class="viewcode-block" id="binary_mutation"><a class="viewcode-back" href="../../pyade.html#pyade.commons.binary_mutation">[docs]</a><span class="k">def</span> <span class="nf">binary_mutation</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                    <span class="n">f</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+                    <span class="n">bounds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the binary mutation of the population. For each individual (n),</span>
+<span class="sd">    3 random parents (x,y,z) are selected. The parents are guaranteed to not</span>
+<span class="sd">    be in the same position than the original. New individual are created by</span>
+<span class="sd">    n = z + F * (x-y)</span>
+<span class="sd">    :param population: Population to apply the mutation</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param f: Parameter of control of the mutation. Must be in [0, 2].</span>
+<span class="sd">    :type f: Union[int, float]</span>
+<span class="sd">    :param bounds: Numpy array of tuples (min, max).</span>
+<span class="sd">                   Each tuple represents a gen of an individual.</span>
+<span class="sd">    :type bounds: np.ndarray</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    :return: Mutated population</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If there&#39;s not enough population we return it without mutating</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">population</span>
+
+    <span class="c1"># 1. For each number, obtain 3 random integers that are not the number</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">__parents_choice</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="c1"># 2. Apply the formula to each set of parents</span>
+    <span class="n">mutated</span> <span class="o">=</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]])</span>
+    <span class="n">mutated</span> <span class="o">+=</span> <span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]]</span>
+
+    <span class="k">return</span> <span class="n">keep_bounds</span><span class="p">(</span><span class="n">mutated</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="current_to_best_2_binary_mutation"><a class="viewcode-back" href="../../pyade.html#pyade.commons.current_to_best_2_binary_mutation">[docs]</a><span class="k">def</span> <span class="nf">current_to_best_2_binary_mutation</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                      <span class="n">population_fitness</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                      <span class="n">f</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+                                      <span class="n">bounds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the mutation of the entire population based on the</span>
+<span class="sd">    &quot;current to best/2/bin&quot; mutation. This is</span>
+<span class="sd">    V_{i, G} = X_{i, G} + F * (X_{best, G} - X_{i, G} + F * (X_{r1. G} - X_{r2, G}</span>
+<span class="sd">    :param population: Population to apply the mutation</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param population_fitness: Fitness of the given population</span>
+<span class="sd">    :type population_fitness: np.ndarray</span>
+<span class="sd">    :param f: Parameter of control of the mutation. Must be in [0, 2].</span>
+<span class="sd">    :type f: Union[int, float]</span>
+<span class="sd">    :param bounds: Numpy array of tuples (min, max).</span>
+<span class="sd">                   Each tuple represents a gen of an individual.</span>
+<span class="sd">    :type bounds: np.ndarray</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    :return: Mutated population</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If there&#39;s not enough population we return it without mutating</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">population</span>
+
+    <span class="c1"># 1. We find the best parent</span>
+    <span class="n">best_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">population_fitness</span><span class="p">)</span>
+
+    <span class="c1"># 2. We choose two random parents</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">__parents_choice</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">mutated</span> <span class="o">=</span> <span class="n">population</span> <span class="o">+</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">best_index</span><span class="p">]</span> <span class="o">-</span> <span class="n">population</span><span class="p">)</span>
+    <span class="n">mutated</span> <span class="o">+=</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]])</span>
+
+    <span class="k">return</span> <span class="n">keep_bounds</span><span class="p">(</span><span class="n">mutated</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="current_to_pbest_mutation"><a class="viewcode-back" href="../../pyade.html#pyade.commons.current_to_pbest_mutation">[docs]</a><span class="k">def</span> <span class="nf">current_to_pbest_mutation</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                              <span class="n">population_fitness</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                              <span class="n">f</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+                              <span class="n">p</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+                              <span class="n">bounds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the mutation of the entire population based on the</span>
+<span class="sd">    &quot;current to p-best&quot; mutation. This is</span>
+<span class="sd">    V_{i, G} = X_{i, G} + F * (X_{p_best, G} - X_{i, G} + F * (X_{r1. G} - X_{r2, G}</span>
+<span class="sd">    :param population: Population to apply the mutation</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param population_fitness: Fitness of the given population</span>
+<span class="sd">    :type population_fitness: np.ndarray</span>
+<span class="sd">    :param f: Parameter of control of the mutation. Must be in [0, 2].</span>
+<span class="sd">    :type f: Union[int, float]</span>
+<span class="sd">    :param p: Percentage of population that can be a p-best. Muest be in (0, 1).</span>
+<span class="sd">    :type p: Union[int, float, np.ndarray]</span>
+<span class="sd">    :param bounds: Numpy array of tuples (min, max).</span>
+<span class="sd">                   Each tuple represents a gen of an individual.</span>
+<span class="sd">    :type bounds: np.ndarray</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    :return: Mutated population</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If there&#39;s not enough population we return it without mutating</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">population</span>
+
+    <span class="c1"># 1. We find the best parent</span>
+    <span class="n">p_best</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">p_i</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+        <span class="n">best_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">population_fitness</span><span class="p">)[:</span><span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">p_i</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">))))]</span>
+        <span class="n">p_best</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">best_index</span><span class="p">))</span>
+
+    <span class="n">p_best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">p_best</span><span class="p">)</span>
+    <span class="c1"># 2. We choose two random parents</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">__parents_choice</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">mutated</span> <span class="o">=</span> <span class="n">population</span> <span class="o">+</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">p_best</span><span class="p">]</span> <span class="o">-</span> <span class="n">population</span><span class="p">)</span>
+    <span class="n">mutated</span> <span class="o">+=</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]])</span>
+
+    <span class="k">return</span> <span class="n">keep_bounds</span><span class="p">(</span><span class="n">mutated</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="current_to_rand_1_mutation"><a class="viewcode-back" href="../../pyade.html#pyade.commons.current_to_rand_1_mutation">[docs]</a><span class="k">def</span> <span class="nf">current_to_rand_1_mutation</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                              <span class="n">population_fitness</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                              <span class="n">k</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+                              <span class="n">f</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+                              <span class="n">bounds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the mutation of the entire population based on the</span>
+<span class="sd">    &quot;current to rand/1&quot; mutation. This is</span>
+<span class="sd">    U_{i, G} = X_{i, G} + K * (X_{r1, G} - X_{i, G} + F * (X_{r2. G} - X_{r3, G}</span>
+<span class="sd">    :param population: Population to apply the mutation</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param population_fitness: Fitness of the given population</span>
+<span class="sd">    :type population_fitness: np.ndarray</span>
+<span class="sd">    :param f: Parameter of control of the mutation. Must be in [0, 2].</span>
+<span class="sd">    :type f: Union[int, float]</span>
+<span class="sd">    :param p: Percentage of population that can be a p-best. Muest be in (0, 1).</span>
+<span class="sd">    :type p: Union[int, float]</span>
+<span class="sd">    :param bounds: Numpy array of tuples (min, max).</span>
+<span class="sd">                   Each tuple represents a gen of an individual.</span>
+<span class="sd">    :type bounds: np.ndarray</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    :return: Mutated population</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If there&#39;s not enough population we return it without mutating</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">population</span>
+
+    <span class="c1"># 1. For each number, obtain 3 random integers that are not the number</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">__parents_choice</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="c1"># 2. Apply the formula to each set of parents</span>
+    <span class="n">mutated</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">population</span><span class="p">)</span>
+    <span class="n">mutated</span> <span class="o">+=</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">-</span> <span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]])</span>
+
+    <span class="k">return</span> <span class="n">keep_bounds</span><span class="p">(</span><span class="n">mutated</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="current_to_pbest_weighted_mutation"><a class="viewcode-back" href="../../pyade.html#pyade.commons.current_to_pbest_weighted_mutation">[docs]</a><span class="k">def</span> <span class="nf">current_to_pbest_weighted_mutation</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                       <span class="n">population_fitness</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                       <span class="n">f</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                       <span class="n">f_w</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                       <span class="n">p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                                       <span class="n">bounds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the mutation of the entire population based on the</span>
+<span class="sd">    &quot;current to p-best weighted&quot; mutation. This is</span>
+<span class="sd">    V_{i, G} = X_{i, G} + F_w * (X_{p_best, G} - X_{i, G} + F * (X_{r1. G} - X_{r2, G}</span>
+<span class="sd">    :param population: Population to apply the mutation</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param population_fitness: Fitness of the given population</span>
+<span class="sd">    :type population_fitness: np.ndarray</span>
+<span class="sd">    :param f: Parameter of control of the mutation. Must be in [0, 2].</span>
+<span class="sd">    :type f: np.ndarray</span>
+<span class="sd">    :param f_w: NumPy Array with the weighted version of the mutation array</span>
+<span class="sd">    :type f_w: np.ndarray</span>
+<span class="sd">    :param p: Percentage of population that can be a p-best. Muest be in (0, 1).</span>
+<span class="sd">    :type p: Union[int, float]</span>
+<span class="sd">    :param bounds: Numpy array of tuples (min, max).</span>
+<span class="sd">                   Each tuple represents a gen of an individual.</span>
+<span class="sd">    :type bounds: np.ndarray</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    :return: Mutated population</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If there&#39;s not enough population we return it without mutating</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">population</span>
+
+    <span class="c1"># 1. We find the best parent</span>
+    <span class="n">best_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">population_fitness</span><span class="p">)[:</span><span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)))]</span>
+
+    <span class="n">p_best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">best_index</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">))</span>
+    <span class="c1"># 2. We choose two random parents</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">__parents_choice</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">mutated</span> <span class="o">=</span> <span class="n">population</span> <span class="o">+</span> <span class="n">f_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">p_best</span><span class="p">]</span> <span class="o">-</span> <span class="n">population</span><span class="p">)</span>
+    <span class="n">mutated</span> <span class="o">+=</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">population</span><span class="p">[</span><span class="n">parents</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]])</span>
+
+    <span class="k">return</span> <span class="n">keep_bounds</span><span class="p">(</span><span class="n">mutated</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="crossover"><a class="viewcode-back" href="../../pyade.html#pyade.commons.crossover">[docs]</a><span class="k">def</span> <span class="nf">crossover</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">mutated</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+              <span class="n">cr</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Crosses gens from individuals of the last generation and the mutated ones</span>
+<span class="sd">    based on the crossover rate. Binary crossover</span>
+<span class="sd">    :param population: Previous generation population.</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param mutated: Mutated population.</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param cr: Crossover rate. Must be in [0,1].</span>
+<span class="sd">    :type population: Union[int, float]</span>
+<span class="sd">    :rtype: np.ndarray</span>
+<span class="sd">    :return: Current generation population.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">chosen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="o">*</span><span class="n">population</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">j_rand</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">population</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">chosen</span><span class="p">[</span><span class="n">j_rand</span><span class="p">::</span><span class="n">population</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">chosen</span> <span class="o">&lt;=</span> <span class="n">cr</span><span class="p">,</span> <span class="n">mutated</span><span class="p">,</span> <span class="n">population</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="exponential_crossover"><a class="viewcode-back" href="../../pyade.html#pyade.commons.exponential_crossover">[docs]</a><span class="k">def</span> <span class="nf">exponential_crossover</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">mutated</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                          <span class="n">cr</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Crosses gens from individuals of the last generation and the mutated ones</span>
+<span class="sd">        based on the crossover rate. Exponential crossover.</span>
+<span class="sd">        :param population: Previous generation population.</span>
+<span class="sd">        :type population: np.ndarray</span>
+<span class="sd">        :param mutated: Mutated population.</span>
+<span class="sd">        :type population: np.ndarray</span>
+<span class="sd">        :param cr: Crossover rate. Must be in [0,1].</span>
+<span class="sd">        :type population: Union[int, float]</span>
+<span class="sd">        :rtype: np.ndarray</span>
+<span class="sd">        :return: Current generation population.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">cr</span> <span class="ow">is</span> <span class="nb">int</span> <span class="ow">or</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">cr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cr</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__exponential_crossover_1</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">cr</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">k</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">z</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span>
+            <span class="n">l</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">cr</span> <span class="ow">or</span> <span class="n">l</span> <span class="o">==</span> <span class="n">n</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">z</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">__exponential_crossover_1</span><span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">mutated</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">cr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">))])</span></div>
+
+
+<div class="viewcode-block" id="selection"><a class="viewcode-back" href="../../pyade.html#pyade.commons.selection">[docs]</a><span class="k">def</span> <span class="nf">selection</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">new_population</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+              <span class="n">fitness</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">new_fitness</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+              <span class="n">return_indexes</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Selects the best individuals based on their fitness.</span>
+<span class="sd">    :param population: Last generation population.</span>
+<span class="sd">    :type population: np.ndarray</span>
+<span class="sd">    :param new_population: Current generation population.</span>
+<span class="sd">    :type new_population: np.ndarray</span>
+<span class="sd">    :param fitness: Last generation fitness.</span>
+<span class="sd">    :type fitness: np.ndarray</span>
+<span class="sd">    :param new_fitness: Current generation fitness</span>
+<span class="sd">    :param return_indexes: When active the function also returns the individual indexes that have been modified</span>
+<span class="sd">    :type return_indexes: bool</span>
+<span class="sd">    :rtype: ndarray</span>
+<span class="sd">    :return: The selection of the best of previous generation</span>
+<span class="sd">     and mutated individual for the entire population and optionally, the indexes changed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">fitness</span> <span class="o">&gt;</span> <span class="n">new_fitness</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">population</span><span class="p">[</span><span class="n">indexes</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_population</span><span class="p">[</span><span class="n">indexes</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">return_indexes</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">population</span><span class="p">,</span> <span class="n">indexes</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">population</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">PyADE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, David Criado Ramón.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
