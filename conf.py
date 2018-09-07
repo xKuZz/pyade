@@ -179,17 +179,7 @@ epub_copyright = copyright
 # epub_identifier = ''
 
 def run_apidoc(_):
-    modules = ['pyade/commons',
-              'pyade/de',
-              'pyade/lshade',
-              'pyade/ilshade',
-              'pyade/lshadecnepsin',
-              'pyade/mmts',
-              'pyade/shade',
-              'pyade/jade',
-              'pyade/sade',
-              'pyade/jso',
-              'pyade/mpede']
+    modules = ['pyade/']
     
     for module in modules:
         cur_dir = os.path.abspath(os.path.dirname(__file__))
