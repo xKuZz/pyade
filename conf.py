@@ -208,14 +208,6 @@ def run_apidoc(_):
             # If we are, assemble the path manually
             cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
         main([cmd_path, '-e', '-o', output_path, module, '--force'])
-    from sphinx.apidoc import main
-    import os
-    import sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    module = '.'
-    output_path = os.path.join(cur_dir, 'source')
-    main(['-e', '-o', output_path, module, '--force'])
     
 def setup(app):
     app.connect('builder-inited', run_apidoc)
