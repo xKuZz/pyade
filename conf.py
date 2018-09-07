@@ -16,7 +16,6 @@ from sphinx.apidoc import main
 import os
 import sys
 sys.path.insert(0, os.path.abspath('pyade'))
-sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -201,7 +200,7 @@ def run_apidoc(_):
     from sphinx.apidoc import main
     import os
     import sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'pyade/'))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     module = 'pyade'
     output_path = os.path.join(cur_dir, 'source')
