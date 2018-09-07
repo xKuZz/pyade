@@ -6,7 +6,6 @@
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/master/config
 
-from sphinx.apidoc import main
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -15,7 +14,8 @@ from sphinx.apidoc import main
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('pyade/.'))
+sys.path.insert(0, os.path.abspath('pyade'))
+
 
 # -- Project information -----------------------------------------------------
 
@@ -176,6 +176,7 @@ epub_copyright = copyright
 # or the project homepage.
 #
 # epub_identifier = ''
+
 # A unique identification for the text.
 #
 # epub_uid = ''
@@ -195,18 +196,3 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
-
-def run_apidoc(_):
-    modules = ['pyade/']
-    
-    for module in modules:
-        cur_dir = os.path.abspath(os.path.dirname(__file__))
-        output_path = os.path.join(cur_dir, module, '.')
-        cmd_path = 'sphinx-apidoc'
-        if hasattr(sys, 'real_prefix'):  # Check to see if we are in a virtualenv
-            # If we are, assemble the path manually
-            cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
-        main([cmd_path, '-e', '-o', output_path, module, '--force'])
-    
-def setup(app):
-    app.connect('builder-inited', run_apidoc)
