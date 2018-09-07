@@ -15,7 +15,7 @@ from sphinx.apidoc import main
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('pyade'))
+sys.path.insert(0, os.path.abspath('pyade/.'))
 
 # -- Project information -----------------------------------------------------
 
@@ -195,31 +195,3 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
-
-def run_apidoc(_):
-    ignore_paths = [
-        ...
-    ]
-
-    argv = [
-        "-f",
-        "-T",
-        "-e",
-        "-M",
-        "-o", ".",
-        ".."
-    ] + ignore_paths
-
-    try:
-        # Sphinx 1.7+
-        from sphinx.ext import apidoc
-        apidoc.main(argv)
-    except ImportError:
-        # Sphinx 1.6 (and earlier)
-        from sphinx import apidoc
-        argv.insert(0, apidoc.__file__)
-        apidoc.main(argv)
-
-
-def setup(app):
-    app.connect('builder-inited', run_apidoc)
