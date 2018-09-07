@@ -197,8 +197,7 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 todo_include_todos = True
 
 def run_apidoc(_):
-    modules = ['pyade/',
-              'pyade/de.py']
+    modules = ['pyade/']
     
     for module in modules:
         cur_dir = os.path.abspath(os.path.dirname(__file__))
