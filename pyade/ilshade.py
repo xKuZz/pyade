@@ -15,11 +15,11 @@ def get_default_params(dim: int):
         :rtype dict
     """
     return {'population_size': 12 * dim, 'individual_size': dim, 'memory_size': 6,
-            'max_evals': 10000 * dim, 'callback': None, 'seed': None}
+            'max_evals': 10000 * dim, 'callback': None, 'seed': None, 'opts': None}
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
-          func: Callable[[np.ndarray], float],
+          func: Callable[[np.ndarray], float], opts: Any,
           memory_size: int, callback: Callable[[Dict], Any],
           max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
     """
@@ -35,6 +35,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
+    :param opts: Optional parameters for the fitness function.
+    :type opts: Any type.
     :param memory_size: Size of the internal memory.
     :type memory_size: int
     :param callback: Optional function that allows read access to the state of all variables once each generation.
@@ -75,7 +77,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     m_f = np.ones(memory_size) * .5
     archive = []
     k = 0
-    fitness = pyade.commons.apply_fitness(population, func)
+    fitness = pyade.commons.apply_fitness(population, func, opts)
 
     memory_indexes = list(range(memory_size))
     num_evals = 0
@@ -123,7 +125,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         # 2.2 Common steps
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p_i, bounds)
         crossed = pyade.commons.crossover(population, mutated, cr.reshape(len(f), 1))
-        c_fitness = pyade.commons.apply_fitness(crossed, func)
+        c_fitness = pyade.commons.apply_fitness(crossed, func, opts)
         num_evals += current_size
         population, indexes = pyade.commons.selection(population, crossed,
                                                       fitness, c_fitness, return_indexes=True)
