@@ -18,8 +18,8 @@ def get_default_params(dim: int) -> dict:
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
-          func: Callable[[np.ndarray], float], p: Union[int, float], c: Union[int, float],
-          callback: Callable[[Dict], Any],
+          func: Callable[[np.ndarray], float], opts: Any,
+          p: Union[int, float], c: Union[int, float], callback: Callable[[Dict], Any],
           max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
     """
     Applies the JADE Differential Evolution algorithm.
@@ -34,6 +34,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
+    :param opts: Optional parameters for the fitness function.
+    :type opts: Any type.
     :param p: Parameter to choose the best vectors. Must be in (0, 1].
     :type p: Union[int, float]
     :param c: Variable to control parameter adoption. Must be in [0, 1].
@@ -79,7 +81,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     u_f = 0.6
 
     p = np.ones(population_size) * p
-    fitness = pyade.commons.apply_fitness(population, func)
+    fitness = pyade.commons.apply_fitness(population, func, opts)
     max_iters = max_evals // population_size
     for current_generation in range(max_iters):
         # 2.1 Generate parameter values for current generation
@@ -90,7 +92,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         # 2.2 Common steps
         mutated = pyade.commons.current_to_pbest_mutation(population, fitness, f.reshape(len(f), 1), p, bounds)
         crossed = pyade.commons.crossover(population, mutated, cr.reshape(len(f), 1))
-        c_fitness = pyade.commons.apply_fitness(crossed, func)
+        c_fitness = pyade.commons.apply_fitness(crossed, func, opts)
         population, indexes = pyade.commons.selection(population, crossed,
                                                       fitness, c_fitness, return_indexes=True)
 

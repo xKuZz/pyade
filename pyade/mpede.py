@@ -16,12 +16,12 @@ def get_default_params(dim: int) -> dict:
     pop_size = 250
     return {'max_evals': 10000 * dim, 'individual_size': dim, 'callback': None,
             'population_size': pop_size, 'seed': None, 'lambdas': [0.2, 0.2, 0.2, 0.4],
-            'ng': 20, 'c': 0.1, 'p': 0.04
+            'ng': 20, 'c': 0.1, 'p': 0.04, 'opts': None
             }
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
-          func: Callable[[np.ndarray], float],
+          func: Callable[[np.ndarray], float], opts: Any,
           callback: Callable[[Dict], Any],
           lambdas: Union[list, np.array],
           ng: int, c: Union[int, float], p: Union[int, float],
@@ -44,6 +44,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
+    :param opts: Optional parameters for the fitness function.
+    :type opts: Any type.
     :param callback: Optional function that allows read access to the state of all variables once each generation.
     :type callback: Callable[[Dict], Any]
     :param max_evals: Number of evaluations after the algorithm is stopped.
@@ -117,7 +119,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     for j in range(3):
         f.append(np.empty(pop_size[j]))
         cr.append(np.empty(pop_size[j]))
-        fitnesses.append(pyade.commons.apply_fitness(pops[j], func))
+        fitnesses.append(pyade.commons.apply_fitness(pops[j], func, opts))
         num_evals += len(pops[j])
 
     # 2. Start the algorithm
@@ -148,9 +150,9 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         crossed2 = mutated2
         crossed3 = pyade.commons.crossover(pops[2], mutated3, cr[2].reshape(len(cr[2]), 1))
 
-        c_fitness1 = pyade.commons.apply_fitness(crossed1, func)
-        c_fitness2 = pyade.commons.apply_fitness(crossed2, func)
-        c_fitness3 = pyade.commons.apply_fitness(crossed3, func)
+        c_fitness1 = pyade.commons.apply_fitness(crossed1, func, opts)
+        c_fitness2 = pyade.commons.apply_fitness(crossed2, func, opts)
+        c_fitness3 = pyade.commons.apply_fitness(crossed3, func, opts)
 
         for j in range(3):
             num_evals += len(pops[j])

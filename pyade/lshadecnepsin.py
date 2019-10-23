@@ -18,11 +18,11 @@ def get_default_params(dim: int):
     return {'population_size': 18 * dim,
             'min_population_size': 4,
             'individual_size': dim, 'memory_size': 5,
-            'max_evals': 10000 * dim, 'seed': None, 'callback': None}
+            'max_evals': 10000 * dim, 'seed': None, 'callback': None, 'opts': None}
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
-          func: Callable[[np.ndarray], float],
+          func: Callable[[np.ndarray], float], opts: Any,
           memory_size: int, callback: Callable[[Dict], Any],
           min_population_size: int,
           max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
@@ -40,6 +40,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
+    :param opts: Optional parameters for the fitness function.
+    :type opts: Any type.
     :param memory_size: Size of the internal memory.
     :type memory_size: int
     :param callback: Optional function that allows read access to the state of all variables once each generation.
@@ -76,7 +78,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     # 1. Initialization
     # 1.1 Initialize population at first generation
     population = pyade.commons.init_population(population_size, individual_size, bounds)
-    fitness = pyade.commons.apply_fitness(population, func)
+    fitness = pyade.commons.apply_fitness(population, func, opts)
 
     # 1.2 Initialize memory of first control settings
     u_f = np.ones(memory_size) * .5
@@ -210,16 +212,16 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
 
         # D. Apply coordinate origin transform
 
-        cov_population = np.dot(population[cov_indexes], np.matrix(tm))
-        cov_mutated = np.dot(mutated[cov_indexes], np.matrix(tm))
+        cov_population = np.dot(population[cov_indexes], tm)
+        cov_mutated = np.dot(mutated[cov_indexes], tm)
 
         cov_crossed = pyade.commons.crossover(cov_population, cov_mutated,
                                               cr[cov_indexes].reshape(len(cov_indexes), 1))
 
         # E. Go back the te original coordinate system
 
-        crossed[cov_indexes] = np.dot(cov_crossed, np.matrix(tm_).T)
-        crossed_fitness = pyade.commons.apply_fitness(crossed, func)
+        crossed[cov_indexes] = np.dot(cov_crossed, tm_.T)
+        crossed_fitness = pyade.commons.apply_fitness(crossed, func, opts)
         num_evals += current_size
 
         # Selection

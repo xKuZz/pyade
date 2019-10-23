@@ -31,12 +31,12 @@ def get_default_params(dim: int) -> dict:
     :rtype dict
     """
     return {'max_evals': 10000 * dim, 'population_size': 60, 'callback': None,
-            'individual_size': dim, 'seed': None}
+            'individual_size': dim, 'seed': None, 'opts': None}
 
 
 def apply(population_size: int, individual_size: int,
           bounds: np.ndarray,
-          func: Callable[[np.ndarray], float],
+          func: Callable[[np.ndarray], float], opts: Any,
           callback: Callable[[Dict], Any],
           max_evals: int, seed: Union[int, None]):
     """
@@ -52,6 +52,8 @@ def apply(population_size: int, individual_size: int,
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
+    :param opts: Optional parameters for the fitness function.
+    :type opts: Any type.
     :param callback: Optional function that allows read access to the state of all variables once each generation.
     :type callback: Callable[[Dict], Any]
     :param max_evals: Number of evaluatios after the algorithm is stopped.
@@ -66,10 +68,9 @@ def apply(population_size: int, individual_size: int,
     np.random.seed(seed)
     population = pyade.commons.init_population(population_size, individual_size, bounds)
 
-    fitness = pyade.commons.apply_fitness(population, func)
+    fitness = pyade.commons.apply_fitness(population, func, opts)
 
     num_evals = 0
-
 
     pf1, pf2, pf3 = 1 / 3, 1 / 3, 1 / 3
     cr1, cr2, cr3 = 1 / 3, 1 / 3, 1 / 3
@@ -139,7 +140,7 @@ def apply(population_size: int, individual_size: int,
                                                                      cr[exp_cross_idx].reshape(len(cr[exp_cross_idx]), 1))
 
         # 2.3 Recalculate fitness
-        c_fitness = pyade.commons.apply_fitness(crossed, func)
+        c_fitness = pyade.commons.apply_fitness(crossed, func, opts)
         num_evals += population_size
 
         # 2.4 Distance between new population and original population
@@ -163,7 +164,7 @@ def apply(population_size: int, individual_size: int,
 
         if run_mmts:
             selected = clearing(0.2, 5, population, fitness.copy())
-            a = pyade.mmts.mmts(population[selected], bounds, fitness[selected], mmts_desired_evals, func)
+            a = pyade.mmts.mmts(population[selected], bounds, fitness[selected], mmts_desired_evals, func, opts)
             population[selected] = a[0]
             fitness_test = fitness[selected] < a[1]
             s['mmts_ok'] = len(fitness_test)

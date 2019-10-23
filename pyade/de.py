@@ -13,12 +13,12 @@ def get_default_params(dim: int) -> dict:
     :rtype dict
     """
     return {'callback': None, 'max_evals': 10000 * dim, 'seed': None, 'cross': 'bin',
-            'f': 0.5, 'cr': 0.9, 'individual_size': dim, 'population_size': 10 * dim}
+            'f': 0.5, 'cr': 0.9, 'individual_size': dim, 'population_size': 10 * dim, 'opts': None}
 
 
 def apply(population_size: int, individual_size: int, f: Union[float, int],
           cr: Union[float, int], bounds: np.ndarray,
-          func: Callable[[np.ndarray], float],
+          func: Callable[[np.ndarray], float], opts: Any,
           callback: Callable[[Dict], Any],
           cross: str,
           max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
@@ -39,6 +39,8 @@ def apply(population_size: int, individual_size: int, f: Union[float, int],
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
+    :param opts: Optional parameters for the fitness function.
+    :type opts: Any type.
     :param callback: Optional function that allows read access to the state of all variables once each generation.
     :type callback: Callable[[Dict], Any]
     :param cross: Indicates whether to use the binary crossover('bin') or the exponential crossover('exp').
@@ -83,7 +85,7 @@ def apply(population_size: int, individual_size: int, f: Union[float, int],
     np.random.seed(seed)
     population = pyade.commons.init_population(population_size,
                                                individual_size, bounds)
-    fitness = pyade.commons.apply_fitness(population, func)
+    fitness = pyade.commons.apply_fitness(population, func, opts)
 
     max_iters = max_evals // population_size
     for current_generation in range(max_iters):
@@ -93,7 +95,7 @@ def apply(population_size: int, individual_size: int, f: Union[float, int],
         else:
             crossed = pyade.commons.exponential_crossover(population, mutated, cr)
 
-        c_fitness = pyade.commons.apply_fitness(crossed, func)
+        c_fitness = pyade.commons.apply_fitness(crossed, func, opts)
         population, indexes = pyade.commons.selection(population, crossed,
                                                       fitness, c_fitness, return_indexes=True)
 

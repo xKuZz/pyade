@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Callable, Union, List, Tuple
+from typing import Callable, Union, List, Tuple, Any
 
 
 def keep_bounds(population: np.ndarray,
@@ -40,17 +40,23 @@ def init_population(population_size: int, individual_size: int,
 
 
 def apply_fitness(population: np.ndarray,
-                  func: Callable[[np.ndarray], float]) -> np.ndarray:
+                  func: Callable[[np.ndarray], float],
+                  opts: Any) -> np.ndarray:
     """
     Applies the given fitness function to each individual of the population.
     :param population: Population to apply the current fitness function.
     :type population: np.ndarray
     :param func: Function that is used to calculate the fitness.
     :type func: np.ndarray
+    :param opts: Optional parameters for the fitness function.
+    :type opts: Any type.
     :rtype np.ndarray
     :return: Numpy array of fitness for each individual.
     """
-    return np.array([func(individual) for individual in population])
+    if opts is None:
+        return np.array([func(individual) for individual in population])
+    else:
+        return np.array([func(individual, opts) for individual in population])
 
 
 def __parents_choice(population: np.ndarray, n_parents: int) -> np.ndarray:
@@ -283,8 +289,11 @@ def exponential_crossover(population: np.ndarray, mutated: np.ndarray,
         :rtype: np.ndarray
         :return: Current generation population.
     """
-    if cr is int or float:
+    if type(cr) is int or float:
         cr = np.array([cr] * len(population))
+    else:
+        cr = cr.flatten()
+
     def __exponential_crossover_1(x: np.ndarray, y: np.ndarray, cr: Union[int, float]) -> np.ndarray:
         z = x.copy()
         n = len(x)
@@ -298,7 +307,7 @@ def exponential_crossover(population: np.ndarray, mutated: np.ndarray,
             if np.random.randn() >= cr or l == n:
                 return z
 
-    return np.array([__exponential_crossover_1(population[i], mutated[i], cr[i]) for i in range(len(population))])
+    return np.array([__exponential_crossover_1(population[i], mutated[i], cr.flatten()[i]) for i in range(len(population))])
 
 
 def selection(population: np.ndarray, new_population: np.ndarray,

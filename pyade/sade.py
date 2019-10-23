@@ -12,12 +12,12 @@ def get_default_params(dim: int) -> dict:
     :rtype dict
     """
     return {'max_evals': 10000 * dim, 'population_size': 10 * dim, 'callback': None,
-            'individual_size': dim, 'seed': None}
+            'individual_size': dim, 'seed': None, 'opts': None}
 
 
 def apply(population_size: int, individual_size: int,
           bounds: np.ndarray,
-          func: Callable[[np.ndarray], float],
+          func: Callable[[np.ndarray], float], opts: Any,
           callback: Callable[[Dict], Any],
           max_evals: int, seed: Union[int, None]):
     """
@@ -33,6 +33,8 @@ def apply(population_size: int, individual_size: int,
     :param func: Evaluation function. The function used must receive one
      parameter.This parameter will be a numpy array representing an individual.
     :type func: Callable[[np.ndarray], float]
+    :param opts: Optional parameters for the fitness function.
+    :type opts: Any type.
     :param callback: Optional function that allows read access to the state of all variables once each generation.
     :type callback: Callable[[Dict], Any]
     :param max_evals: Number of evaluatios after the algorithm is stopped.
@@ -67,7 +69,7 @@ def apply(population_size: int, individual_size: int,
 
     # 2. SaDE Algorithm
     probability = 0.5
-    fitness = pyade.commons.apply_fitness(population, func)
+    fitness = pyade.commons.apply_fitness(population, func, opts)
     cr_m = 0.5
     f_m = 0.5
 
@@ -102,7 +104,7 @@ def apply(population_size: int, individual_size: int,
 
         # 2.2 Crossover
         crossed = pyade.commons.crossover(population, mutated, cr.reshape(population_size, 1))
-        c_fitness = pyade.commons.apply_fitness(crossed, func)
+        c_fitness = pyade.commons.apply_fitness(crossed, func, opts)
 
         # 2.3 Selection
         population = pyade.commons.selection(population, crossed, fitness, c_fitness)
