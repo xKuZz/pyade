@@ -31,14 +31,16 @@ def get_default_params(dim: int) -> dict:
     :rtype dict
     """
     return {'max_evals': 10000 * dim, 'population_size': 60, 'callback': None,
-            'individual_size': dim, 'seed': None, 'opts': None}
+            'individual_size': dim, 'seed': None, 'opts': None,
+            'terminate_callback': None}
 
 
 def apply(population_size: int, individual_size: int,
           bounds: np.ndarray,
           func: Callable[[np.ndarray], float], opts: Any,
           callback: Callable[[Dict], Any],
-          max_evals: int, seed: Union[int, None]):
+          max_evals: int, seed: Union[int, None],
+          terminate_callback: Callable[[], bool]) -> [np.ndarray, int]:
     """
     Applies the Self-adaptive differential evolution algorithm (SaDE).
     :param population_size: Size of the population.
@@ -88,7 +90,7 @@ def apply(population_size: int, individual_size: int,
     mmts_desired_evals = 60
     num_no_mmts = 0
 
-    while num_evals < max_evals:
+    while num_evals < max_evals and (terminate_callback is not None and not terminate_callback()):
 
         # 1. Generate ensemble parameters
         if current_generation == 1 or current_generation > learning_period:

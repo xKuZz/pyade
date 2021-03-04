@@ -18,14 +18,16 @@ def get_default_params(dim: int):
     return {'population_size': 18 * dim,
             'min_population_size': 4,
             'individual_size': dim, 'memory_size': 5,
-            'max_evals': 10000 * dim, 'seed': None, 'callback': None, 'opts': None}
+            'max_evals': 10000 * dim, 'seed': None, 'callback': None, 'opts': None,
+            'terminate_callback': None}
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
           func: Callable[[np.ndarray], float], opts: Any,
           memory_size: int, callback: Callable[[Dict], Any],
           min_population_size: int,
-          max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
+          max_evals: int, seed: Union[int, None],
+          terminate_callback: Callable[[], bool]) -> [np.ndarray, int]:
     """
     Applies the L-SHADE-cnEpSin differential evolution algorithm.
     :param population_size: Size of the population (NP-max)
@@ -51,6 +53,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param seed: Random number generation seed. Fix a number to reproduce the
     same results in later experiments.
     :type seed: Union[int, None]
+    :param terminate_callback: Callback that checks whether it is time to terminate or not. The callback should return True if it's time to stop, otherwise False.
+    :type terminate_callback: Callable[[], bool]
     :return: A pair with the best solution found and its fitness.
     :rtype [np.ndarray, int]
     """
@@ -111,7 +115,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         i += n
 
     current_generation = 0
-    while num_evals < max_evals:
+    while num_evals < max_evals and (terminate_callback is not None and not terminate_callback()):
         # Mutation
         if current_generation <= (max_iters / 2):
             if current_generation <= lp:
