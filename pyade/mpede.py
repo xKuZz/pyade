@@ -195,7 +195,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             k = [f_var[i] / len(pops[i] / ng) for i in range(3)]
             chosen = np.argmax(k)
 
-        indexes = np.arange(0, len(population), 1, np.int)
+        indexes = np.arange(0, len(population), 1, int)
         np.random.shuffle(indexes)
         indexes = np.array_split(indexes, 4)
         chosen = np.random.randint(0, 3)
