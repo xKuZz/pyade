@@ -109,10 +109,13 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     n = population_size
     i = 0
     max_iters = 0
-    while i < max_evals:
-        max_iters += 1
-        n = round((min_population_size - population_size) / max_evals * i + population_size)
-        i += n
+    if max_evals > 1e8:
+        max_iters = 200 # Probably wrong, but what else should I do here? the following loop goes crazy if max_evals is too high
+    else:
+        while i < max_evals: # TODO causes problems with big values...
+            max_iters += 1
+            n = round((min_population_size - population_size) / max_evals * i + population_size)
+            i += n
 
     current_generation = 0
     while num_evals < max_evals and (terminate_callback is not None and not terminate_callback()):
