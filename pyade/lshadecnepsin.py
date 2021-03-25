@@ -201,7 +201,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         sel = round(ps * current_size)
         xmean = np.mean(xsel, axis=1)
 
-        aux = np.ones((sel, 1), dtype=np.bool)
+        aux = np.ones((sel, 1), dtype=bool)
         xsel = xsel.T
         c = 1 / (sel - 1) * np.dot(xsel - xmean, (xsel - xmean).T)
         c = np.triu(c) + np.triu(c, 1).T
@@ -257,7 +257,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
                 u_f[k] = np.sum(weights * f[indexes] ** 2) / np.sum(weights * f[indexes])
 
             if lp < current_generation < (max_iters / 2):
-                chosen = np.logical_and(np.array(option == 'p2', dtype=np.bool), winners)
+                chosen = np.logical_and(np.array(option == 'p2', dtype=bool), winners)
                 if len(freq_i[chosen]) != 0:
                     u_freq[k] = np.mean(freq_i[chosen])
                 if np.isnan(u_freq[k]):
