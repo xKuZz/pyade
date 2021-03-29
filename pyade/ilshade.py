@@ -142,6 +142,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
                 archive = random.sample(archive, population_size)
 
             weights = np.abs(fitness[indexes] - c_fitness[indexes])
+            weights = weights.astype(float)
             weights /= np.sum(weights)
 
             if max(cr) != 0:
