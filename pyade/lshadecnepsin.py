@@ -252,6 +252,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         # Update memory
         if len(indexes) > 0:
             weights = np.abs(fitness[indexes] - crossed_fitness[indexes])
+            weights = weights.astype(float)
             weights /= np.sum(weights)
             if max(cr[indexes]) != 0:
                 u_cr[k] = np.sum(weights * cr[indexes] ** 2) / np.sum(weights * cr[indexes])
