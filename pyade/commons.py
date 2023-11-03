@@ -35,8 +35,12 @@ def init_population(population_size: int, individual_size: int,
     :return: Initialized population.
     """
 
-    population = np.random.randn(population_size, individual_size)
-    return keep_bounds(population, bounds)
+    minimum = np.array([bound[0] for bound in bounds])
+    maximum = np.array([bound[1] for bound in bounds])
+    range = maximum-minimum
+    population = np.random.rand(population_size, individual_size) * range + minimum
+
+    return population
 
 
 def apply_fitness(population: np.ndarray,
