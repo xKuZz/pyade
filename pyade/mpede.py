@@ -16,8 +16,8 @@ def get_default_params(dim: int) -> dict:
     pop_size = 250
     return {'max_evals': 10000 * dim, 'individual_size': dim, 'callback': None,
             'population_size': pop_size, 'seed': None, 'lambdas': [0.2, 0.2, 0.2, 0.4],
-            'ng': 20, 'c': 0.1, 'p': 0.04, 'opts': None
-            }
+            'ng': 20, 'c': 0.1, 'p': 0.04, 'opts': None,
+            'terminate_callback': None}
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
@@ -25,7 +25,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
           callback: Callable[[Dict], Any],
           lambdas: Union[list, np.array],
           ng: int, c: Union[int, float], p: Union[int, float],
-          max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
+          max_evals: int, seed: Union[int, None],
+          terminate_callback: Callable[[], bool]) -> [np.ndarray, int]:
 
     """
     Applies the MPEDE differential evolution algorithm.
@@ -57,6 +58,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param c: Variable to control parameter adoption. Must be in [0, 1].
     :type c: Union[int, float]
     :type seed: Union[int, None]
+    :param terminate_callback: Callback that checks whether it is time to terminate or not. The callback should return True if it's time to stop, otherwise False.
+    :type terminate_callback: Callable[[], bool]
     :return: A pair with the best solution found and its fitness.
     :rtype [np.ndarray, int]
 
@@ -123,7 +126,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         num_evals += len(pops[j])
 
     # 2. Start the algorithm
-    while num_evals <= max_evals:
+    while num_evals < max_evals and (terminate_callback is not None and not terminate_callback()):
         current_generation += 1
 
         # 2.1 Generate CR and F values
@@ -192,7 +195,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
             k = [f_var[i] / len(pops[i] / ng) for i in range(3)]
             chosen = np.argmax(k)
 
-        indexes = np.arange(0, len(population), 1, np.int)
+        indexes = np.arange(0, len(population), 1, int)
         np.random.shuffle(indexes)
         indexes = np.array_split(indexes, 4)
         chosen = np.random.randint(0, 3)

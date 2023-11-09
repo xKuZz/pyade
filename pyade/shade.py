@@ -16,13 +16,15 @@ def get_default_params(dim: int):
     """
     return {'max_evals': 10000 * dim, 'memory_size': 100,
             'individual_size': dim, 'population_size': 10 * dim,
-            'callback': None, 'seed': None, 'opts': None}
+            'callback': None, 'seed': None, 'opts': None,
+            'terminate_callback': None}
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
           func: Callable[[np.ndarray], float], opts: Any,
           memory_size: int, callback: Callable[[Dict], Any],
-          max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
+          max_evals: int, seed: Union[int, None],
+          terminate_callback: Callable[[], bool]) -> [np.ndarray, int]:
     """
     Applies the SHADE differential evolution algorithm.
     :param population_size: Size of the population.
@@ -47,6 +49,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param seed: Random number generation seed. Fix a number to reproduce the
     same results in later experiments.
     :type seed: Union[int, None]
+    :param terminate_callback: Callback that checks whether it is time to terminate or not. The callback should return True if it's time to stop, otherwise False.
+    :type terminate_callback: Callable[[], bool]
     :return: A pair with the best solution found and its fitness.
     :rtype [np.ndarray, int]
     """
@@ -82,6 +86,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     all_indexes = list(range(memory_size))
     max_iters = max_evals // population_size
     for current_generation in range(max_iters):
+        if terminate_callback is not None and terminate_callback():
+            break
         # 2.1 Adaptation
         r = np.random.choice(all_indexes, population_size)
         cr = np.random.normal(m_cr[r], 0.1, population_size)
@@ -111,6 +117,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
                 archive = random.sample(archive, memory_size)
             if max(cr) != 0:
                 weights = np.abs(fitness[indexes] - c_fitness[indexes])
+                weights = weights.astype(float)
                 weights /= np.sum(weights)
                 m_cr[k] = np.sum(weights * cr[indexes])
             else:

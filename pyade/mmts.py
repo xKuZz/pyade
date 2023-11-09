@@ -182,8 +182,8 @@ def local_search_3(individual: np.ndarray, reset_sr: np.ndarray, search_range: U
         return grade, best_solution, best_fitness, new_individual, apply_func_with_opts(new_individual, func, opts), num_evals
 
 def mmts(population: np.ndarray, bounds: np.ndarray, fitness: np.ndarray, max_evals: int, func, opts: Any):
-    enable = np.ones(population.shape[0], np.bool)
-    improve = np.ones(population.shape[0], np.bool)
+    enable = np.ones(population.shape[0], bool)
+    improve = np.ones(population.shape[0], bool)
     minimum, maximum = bounds[0]
     search_range = (maximum - minimum) / 2
     reset_sr = np.ones(population.shape[0]) * .4 * search_range
@@ -263,7 +263,7 @@ def mmts(population: np.ndarray, bounds: np.ndarray, fitness: np.ndarray, max_ev
             best_fitness = search[2]
             num_evals += search[5]
 
-        enable = np.zeros(population.shape[0], np.bool)
+        enable = np.zeros(population.shape[0], bool)
         best_grades = np.argsort(grades)[::-1][:num_foreground]
         enable[best_grades] = True
 

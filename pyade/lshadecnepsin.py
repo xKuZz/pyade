@@ -18,14 +18,16 @@ def get_default_params(dim: int):
     return {'population_size': 18 * dim,
             'min_population_size': 4,
             'individual_size': dim, 'memory_size': 5,
-            'max_evals': 10000 * dim, 'seed': None, 'callback': None, 'opts': None}
+            'max_evals': 10000 * dim, 'seed': None, 'callback': None, 'opts': None,
+            'terminate_callback': None}
 
 
 def apply(population_size: int, individual_size: int, bounds: np.ndarray,
           func: Callable[[np.ndarray], float], opts: Any,
           memory_size: int, callback: Callable[[Dict], Any],
           min_population_size: int,
-          max_evals: int, seed: Union[int, None]) -> [np.ndarray, int]:
+          max_evals: int, seed: Union[int, None],
+          terminate_callback: Callable[[], bool]) -> [np.ndarray, int]:
     """
     Applies the L-SHADE-cnEpSin differential evolution algorithm.
     :param population_size: Size of the population (NP-max)
@@ -51,6 +53,8 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     :param seed: Random number generation seed. Fix a number to reproduce the
     same results in later experiments.
     :type seed: Union[int, None]
+    :param terminate_callback: Callback that checks whether it is time to terminate or not. The callback should return True if it's time to stop, otherwise False.
+    :type terminate_callback: Callable[[], bool]
     :return: A pair with the best solution found and its fitness.
     :rtype [np.ndarray, int]
     """
@@ -105,13 +109,16 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
     n = population_size
     i = 0
     max_iters = 0
-    while i < max_evals:
-        max_iters += 1
-        n = round((min_population_size - population_size) / max_evals * i + population_size)
-        i += n
+    if max_evals > 1e8:
+        max_iters = 200 # Probably wrong, but what else should I do here? the following loop goes crazy if max_evals is too high
+    else:
+        while i < max_evals: # TODO causes problems with big values...
+            max_iters += 1
+            n = round((min_population_size - population_size) / max_evals * i + population_size)
+            i += n
 
     current_generation = 0
-    while num_evals < max_evals:
+    while num_evals < max_evals and (terminate_callback is not None and not terminate_callback()):
         # Mutation
         if current_generation <= (max_iters / 2):
             if current_generation <= lp:
@@ -197,7 +204,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         sel = round(ps * current_size)
         xmean = np.mean(xsel, axis=1)
 
-        aux = np.ones((sel, 1), dtype=np.bool)
+        aux = np.ones((sel, 1), dtype=bool)
         xsel = xsel.T
         c = 1 / (sel - 1) * np.dot(xsel - xmean, (xsel - xmean).T)
         c = np.triu(c) + np.triu(c, 1).T
@@ -245,6 +252,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
         # Update memory
         if len(indexes) > 0:
             weights = np.abs(fitness[indexes] - crossed_fitness[indexes])
+            weights = weights.astype(float)
             weights /= np.sum(weights)
             if max(cr[indexes]) != 0:
                 u_cr[k] = np.sum(weights * cr[indexes] ** 2) / np.sum(weights * cr[indexes])
@@ -253,7 +261,7 @@ def apply(population_size: int, individual_size: int, bounds: np.ndarray,
                 u_f[k] = np.sum(weights * f[indexes] ** 2) / np.sum(weights * f[indexes])
 
             if lp < current_generation < (max_iters / 2):
-                chosen = np.logical_and(np.array(option == 'p2', dtype=np.bool), winners)
+                chosen = np.logical_and(np.array(option == 'p2', dtype=bool), winners)
                 if len(freq_i[chosen]) != 0:
                     u_freq[k] = np.mean(freq_i[chosen])
                 if np.isnan(u_freq[k]):
